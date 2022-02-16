@@ -1,111 +1,160 @@
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Scanner;
 
-public class Server
-{
-    private static ServerSocket listener;
+public class Server {
+    private ServerSocket listener;
+    private int clientNumber;
+    private String serverAddress;
+    private int serverPort;
+    private boolean serverConstructedProperly;
 
     public Server(ServerSocket serverSocket) {
-        listener = serverSocket;
+        this.serverAddress = "127.0.0.1";
+        this.serverPort = 5000;
+//        try {
+            this.listener = serverSocket;
+//            this.listener.setReuseAddress(true);
+//            InetAddress serverIP = InetAddress.getByName(serverAddress);
+//            this.listener.bind(new InetSocketAddress(serverIP, serverPort));
+            this.serverConstructedProperly = true;
+//        } catch (IOException e) {
+//            this.serverConstructedProperly = false;
+//            System.out.println("Couldn't construct the server, what's going on?");
+//            e.printStackTrace();
+//        }
+
     }
 
-    /*
-     * Application Serveur
-     */
-    public static void main(String[] args) throws Exception
-    {
-        // Demande le port et l'address IP
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Enter your username for the group chat: ");
-        String username = scanner.nextLine();
+    public void startServer() {
+        try {
+            while (!listener.isClosed()) {
+                Socket socket = listener.accept();
+                System.out.println("A new client has connected!");
+                ClientHandler clientHandler = new ClientHandler(socket, clientNumber++);
 
-        // Compteur incremente a chaque connexion d'un client au serveur
-        int clientNumber = 0;
-
-        // Adresse et port du serveur
-        String serverAddress = "127.0.0.1";
-        int serverPort = 5000;
-
-        // Creation de la connexion pour communiquer avec les clients
-        listener = new ServerSocket();
-        listener.setReuseAddress(true);
-        InetAddress serverIP = InetAddress.getByName(serverAddress);
-
-        // Association de l'adresse et du port a la connexion
-        listener.bind(new InetSocketAddress(serverIP, serverPort));
-
-        System.out.format("The server is running on %s:%d%n", serverAddress, serverPort);
-
-        try
-        {
-            /*
-             * A chaque fois qu'un nouveau client se connecte, on execute la fonction
-             * Run() de l'objet ClientHandler.
-             */
-            while (true)
-            {
-                // Important : la fonction accept() est bloquante : attend qu'un prochain client se connecte
-                // Une nouvelle connection : on incremente le compteur clientNumber
-                new ClientHandler(listener.accept(), clientNumber++).start();
+                Thread thread = new Thread(clientHandler);
+                thread.start();
             }
-        }
-        finally
-        {
-            // Fermeture de la connexion
-            listener.close();
+        } catch (IOException e) {
+//            try {
+//                listener.close();
+//            } catch (IOException serverSocketException) {
+//                System.out.println("Couldn't close the ServerSocket, what's going on?");
+//                serverSocketException.printStackTrace();
+//            }
         }
     }
 
-    /*
-     * Un thread qui se charge de traiter la demande de chaque client
-     * sur un socket particulier
-     */
-    private static class ClientHandler extends Thread
-    {
+    public void closeServerSocket() {
+        try {
+            if (listener != null) {
+                listener.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        ServerSocket serverSocket = new ServerSocket(5000);
+        Server server = new Server(serverSocket);
+
+        System.out.format("The server is running on %s: %d%n", server.serverAddress, server.serverPort);
+
+        server.startServer();
+    }
+
+    private class ClientHandler implements Runnable {
+        public static ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
         private Socket socket;
+        private BufferedReader bufferedReader;
+        private BufferedWriter bufferedWriter;
+        private String clientUsername;
+        private String clientPassword;
+        private String clientIPAddress;
+        private int clientPortNumber;
         private int clientNumber;
 
-        public ClientHandler(Socket socket, int clientNumber)
-        {
-            this.socket = socket;
-            this.clientNumber = clientNumber;
-            System.out.println("New connection with client#" + clientNumber + " at " + socket);
+
+        public ClientHandler(Socket socket, int clientNumber) {
+            try {
+                this.socket = socket;
+                this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+                this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                this.clientNumber = clientNumber;
+                this.clientUsername = bufferedReader.readLine();
+//                this.clientPassword = bufferedReader.readLine();
+//                this.clientIPAddress = bufferedReader.readLine();
+//                this.clientPortNumber = Integer.parseInt(bufferedReader.readLine());
+                clientHandlers.add(this);
+                broadcastMessage("Server: " + clientUsername + " has entered the chat!");
+            } catch (IOException e) {
+                System.out.println("Exception thrown, closing everything");
+                closeEverything(socket, bufferedReader, bufferedWriter);
+            }
+
         }
 
-        /*
-         * Un thread qui se charge d'envoyer au client un message de bienvenue
-         */
-        public void run()
-        {
-            try
-            {
-                // Creation d'un canal sortant pour envoyer des messages au client
-                DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+        @Override
+        public void run() {
+            String messageFromClient;
 
-                // Envoie d'un message au client
-                out.writeUTF("Hello from server - you are client#" + clientNumber);
-
-            } catch (IOException e)
-            {
-                System.out.println("Error handling client#" + clientNumber + ": " + e);
+            while (socket.isConnected()) {
+                try {
+                    messageFromClient = bufferedReader.readLine();
+                    broadcastMessage(messageFromClient);
+                } catch (IOException e) {
+                    System.out.println("Error handling client#" + clientNumber + ": " + e);
+                    closeEverything(socket, bufferedReader, bufferedWriter);
+                    break;
+                }
+//                } finally {
+//                    closeEverything(socket, bufferedReader, bufferedWriter);
+//                    System.out.println("Connection with client#" + clientNumber + " closed");
+//                    break;
+//                }
             }
-            finally
-            {
-                try
-                {
-                    // Fermeture de la connexion avec le client
+        }
+
+        public void broadcastMessage(String messageToSend) {
+            for (ClientHandler clientHandler : clientHandlers) {
+                try {
+                    if (!clientHandler.clientUsername.equals(clientUsername)) {
+                        clientHandler.bufferedWriter.write(messageToSend);
+                        clientHandler.bufferedWriter.newLine();
+                        clientHandler.bufferedWriter.flush();
+                    }
+                } catch (IOException e) {
+                    closeEverything(socket, bufferedReader, bufferedWriter);
+                }
+            }
+        }
+
+        public void removeClientHandler() {
+            clientHandlers.remove(this);
+            broadcastMessage("Server: " + clientUsername + " " + clientNumber + " has left the chat!");
+        }
+
+        public void closeEverything(Socket socket, BufferedReader bufferedReader, BufferedWriter bufferedWriter) {
+            removeClientHandler();
+            try {
+                if (bufferedReader != null) {
+                    bufferedReader.close();
+                }
+                if (bufferedWriter != null) {
+                    bufferedWriter.close();
+                }
+                if (socket != null) {
                     socket.close();
                 }
-                catch (IOException e)
-                {
-                    System.out.println("Couldn't close a socket, what's going on?");
-                }
-                System.out.println("Connection with client#" + clientNumber + " closed");
+            } catch (IOException e) {
+                System.out.println("Couldn't close a socket, or a buffered reader/writer, what's going on?");
+                e.printStackTrace();
             }
         }
     }
