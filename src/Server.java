@@ -88,10 +88,10 @@ public class Server {
                 this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 this.clientNumber = clientNumber;
                 this.clientUsername = bufferedReader.readLine();
-//                System.out.println(this.clientUsername);
-//                this.clientPassword = bufferedReader.readLine();
-//                System.out.println("Password" + this.clientPassword);
-//                this.clientIPAddress = bufferedReader.readLine();
+                System.out.println(this.clientUsername);
+                this.clientPassword = bufferedReader.readLine();
+                System.out.println("Password" + this.clientPassword);
+                this.clientIPAddress = bufferedReader.readLine();
 //                System.out.println("IPAddress" + this.clientIPAddress);
 //                this.clientPortNumber = Integer.parseInt(bufferedReader.readLine());
                 clientHandlers.add(this);

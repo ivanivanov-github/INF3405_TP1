@@ -32,6 +32,8 @@ public class Client implements Runnable
         }
     }
 
+    public void sendAuthenticationInformation()
+
     public void sendMessage() {
         try {
             bufferedWriter.write(username);
@@ -83,14 +85,14 @@ public class Client implements Runnable
     public static void main(String[] args) throws IOException
     {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Enter your username for the group chat: ");
-        String username = scanner.nextLine();
-
+//        System.out.println("Enter your username for the group chat: ");
+//        String username = scanner.nextLine();
+//
 //        System.out.println("Enter your password for the group chat: ");
 //        String password = scanner.nextLine();
-        String password = "aa";
-//        System.out.println("Enter the server address (127.0.0.1): ");
-//        String serverAddress = scanner.nextLine();
+//        String password = "aa";
+        System.out.println("Enter the server address (127.0.0.1) and the server port (5000)\n (ex: 127.0.0.1 5000): ");
+        String serverAddress = scanner.nextLine();
 
 //        System.out.println("Enter the server port (5000): ");
 //        String serverPort = scanner.nextLine();
