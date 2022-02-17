@@ -88,14 +88,19 @@ public class Server {
                 this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 this.clientNumber = clientNumber;
                 this.clientUsername = bufferedReader.readLine();
+//                System.out.println(this.clientUsername);
 //                this.clientPassword = bufferedReader.readLine();
+//                System.out.println("Password" + this.clientPassword);
 //                this.clientIPAddress = bufferedReader.readLine();
+//                System.out.println("IPAddress" + this.clientIPAddress);
 //                this.clientPortNumber = Integer.parseInt(bufferedReader.readLine());
                 clientHandlers.add(this);
                 broadcastMessage("Server: " + clientUsername + " has entered the chat!");
             } catch (IOException e) {
                 System.out.println("Exception thrown, closing everything");
                 closeEverything(socket, bufferedReader, bufferedWriter);
+            } catch (NumberFormatException numberFormatException) {
+                System.out.println("Client" + clientUsername + " had a prob with broadcasting his message");
             }
 
         }
@@ -130,6 +135,7 @@ public class Server {
                         clientHandler.bufferedWriter.flush();
                     }
                 } catch (IOException e) {
+                    System.out.println("Client" + clientNumber + " had a prob with broadcasting his message");
                     closeEverything(socket, bufferedReader, bufferedWriter);
                 }
             }

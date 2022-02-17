@@ -64,24 +64,6 @@ public class Client implements Runnable
         }
     }
 
-//    public void listenForMessage() {
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                String msgFromGroupChat;
-//
-//                while (socket.isConnected()) {
-//                    try {
-//                        msgFromGroupChat = bufferedReader.readLine();
-//                        System.out.println(msgFromGroupChat);
-//                    } catch (IOException e) {
-//                        closeEverything(socket, bufferedReader, bufferedWriter);
-//                    }
-//                }
-//            }
-//        }).start();
-//    }
-
     public void closeEverything(Socket socket, BufferedReader bufferedReader, BufferedWriter bufferedWriter) {
         try {
             if (bufferedReader != null) {
@@ -107,14 +89,13 @@ public class Client implements Runnable
 //        System.out.println("Enter your password for the group chat: ");
 //        String password = scanner.nextLine();
         String password = "aa";
-//
 //        System.out.println("Enter the server address (127.0.0.1): ");
 //        String serverAddress = scanner.nextLine();
-//
-//        System.out.println("Enter the server port (5000): ");
-//        int serverPort = Integer.parseInt(scanner.nextLine());
 
-//        Socket socket = new Socket(serverAddress, serverPort);
+//        System.out.println("Enter the server port (5000): ");
+//        String serverPort = scanner.nextLine();
+
+//        Socket socket = new Socket(serverAddress, Integer.parseInt(serverPort));
         Socket socket = new Socket("127.0.0.1", 5000);
         Client client = new Client(socket, username, password);
 //        client.listenForMessage();
