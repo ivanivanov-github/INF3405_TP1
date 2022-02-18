@@ -62,6 +62,7 @@ public class Client implements Runnable
         while (socket.isConnected()) {
             try {
                 msgFromGroupChat = bufferedReader.readLine();
+                if(msgFromGroupChat == null) throw new IOException();
                 System.out.println(msgFromGroupChat);
             } catch (IOException e) {
                 closeEverything(socket, bufferedReader, bufferedWriter);

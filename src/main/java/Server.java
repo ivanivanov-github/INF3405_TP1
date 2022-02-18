@@ -162,10 +162,10 @@ public class Server {
                     bufferedWriter.write("Un client est deja connecte avec ce compte");
                     bufferedWriter.newLine();
                     bufferedWriter.flush();
+                    closeEverything(socket, bufferedReader, bufferedWriter);
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
-                closeEverything(socket, bufferedReader, bufferedWriter);
             }
 
         }
