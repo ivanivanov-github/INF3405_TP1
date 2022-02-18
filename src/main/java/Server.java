@@ -3,29 +3,44 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Scanner;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 public class Server {
     private ServerSocket listener;
     private int clientNumber;
     private String serverAddress;
     private int serverPort;
+    public FileWriter writer;
+    public FileReader reader;
+    public JSONParser parser;
+    public JSONObject dataJsonObj;
+    public JSONArray users;
 
     public Server(ServerSocket serverSocket) {
+        parser = new JSONParser();
         this.serverAddress = "127.0.0.1";
         this.serverPort = 5000;
-//        try {
+        try {
             this.listener = serverSocket;
+            writer = new FileWriter("data.json");
+            reader = new FileReader("data.json");
+            dataJsonObj = (JSONObject) parser.parse(reader);
+            users = (JSONArray) dataJsonObj.get("Users");
 //            this.listener.setReuseAddress(true);
 //            InetAddress serverIP = InetAddress.getByName(serverAddress);
 //            this.listener.bind(new InetSocketAddress(serverIP, serverPort));
-//        } catch (IOException e) {
+        } catch (IOException | org.json.simple.parser.ParseException e) {
 //            this.serverConstructedProperly = false;
 //            System.out.println("Couldn't construct the server, what's going on?");
 //            e.printStackTrace();
-//        }
-
+        }
     }
 
     public void startServer() {
@@ -48,8 +63,13 @@ public class Server {
         }
     }
 
-    public void verifyAuthentication(String username, String password) {
-
+    public void verifyAuthentication() {
+        Iterator<JSONObject> iterator = users.iterator();
+        while (iterator.hasNext()) {
+            JSONObject jsonUser = (JSONObject) iterator.next();
+            System.out.println(jsonUser.get("Username"));
+            System.out.println(jsonUser.get("Password"));
+        }
     }
 
     public void closeServerSocket() {
@@ -65,10 +85,10 @@ public class Server {
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = new ServerSocket(5000);
         Server server = new Server(serverSocket);
-
+        server.verifyAuthentication();
         System.out.format("The server is running on %s: %d%n", server.serverAddress, server.serverPort);
 
-        server.startServer();
+//        server.startServer();
     }
 
     private class ClientHandler implements Runnable {
@@ -93,6 +113,11 @@ public class Server {
                 System.out.println("Username " + this.clientUsername);
                 this.clientPassword = bufferedReader.readLine();
                 System.out.println("Password " + this.clientPassword);
+                JSONObject obj = new JSONObject();
+                obj.put("Username", clientUsername);
+                obj.put("Password", clientPassword);
+                writer.write(obj.toJSONString());
+                writer.close();
 //                this.clientIPAddress = bufferedReader.readLine();
 //                System.out.println("IPAddress" + this.clientIPAddress);
 //                this.clientPortNumber = Integer.parseInt(bufferedReader.readLine());
