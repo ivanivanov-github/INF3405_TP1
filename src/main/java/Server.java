@@ -80,9 +80,16 @@ public class Server {
         JSONObject obj = new JSONObject();
         obj.put("Username", username);
         obj.put("Password", password);
+        obj.put("isConnected", "true");
+        StringWriter out = new StringWriter();
         try {
-            writer.write(obj.toJSONString());
-            writer.close();
+            obj.writeJSONString(out);
+            String jsonText = out.toString();
+            users.add(obj);
+            dataJsonObj.put("Users", users);
+            FileWriter newFileWriter = new FileWriter("data.json", false);
+            newFileWriter.write(dataJsonObj.toJSONString());
+            newFileWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -136,7 +143,7 @@ public class Server {
                     bufferedWriter.write("Erreur dans la saisie du mot de passe");
                     bufferedWriter.newLine();
                     bufferedWriter.flush();
-                    System.out.println("user not in database");
+                    System.out.println("wrong password");
                     closeEverything(socket, bufferedReader, bufferedWriter);
                 }
 //                JSONObject obj = new JSONObject();

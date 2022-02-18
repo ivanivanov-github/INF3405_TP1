@@ -2,13 +2,18 @@
   "Users": [
     {
       "Username": "username1",
-      "Password": "password1",
-      "isConnected": false
+      "isConnected": "true",
+      "Password": "password1"
     },
     {
       "Username": "username2",
-      "Password": "password2",
-      "isConnected": false
+      "isConnected": "true",
+      "Password": "password2"
+    },
+    {
+      "Username": "username3",
+      "isConnected": "true",
+      "Password": "password3"
     }
   ]
 }
