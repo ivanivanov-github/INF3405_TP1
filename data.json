@@ -1,0 +1,14 @@
+{
+  "Users": [
+    {
+      "Username": "username1",
+      "Password": "password1",
+      "isConnected": false
+    },
+    {
+      "Username": "username2",
+      "Password": "password2",
+      "isConnected": false
+    }
+  ]
+}
