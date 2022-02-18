@@ -11,7 +11,6 @@ public class Server {
     private int clientNumber;
     private String serverAddress;
     private int serverPort;
-    private boolean serverConstructedProperly;
 
     public Server(ServerSocket serverSocket) {
         this.serverAddress = "127.0.0.1";
@@ -21,7 +20,6 @@ public class Server {
 //            this.listener.setReuseAddress(true);
 //            InetAddress serverIP = InetAddress.getByName(serverAddress);
 //            this.listener.bind(new InetSocketAddress(serverIP, serverPort));
-            this.serverConstructedProperly = true;
 //        } catch (IOException e) {
 //            this.serverConstructedProperly = false;
 //            System.out.println("Couldn't construct the server, what's going on?");
@@ -48,6 +46,10 @@ public class Server {
 //                serverSocketException.printStackTrace();
 //            }
         }
+    }
+
+    public void verifyAuthentication(String username, String password) {
+
     }
 
     public void closeServerSocket() {
@@ -88,10 +90,10 @@ public class Server {
                 this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 this.clientNumber = clientNumber;
                 this.clientUsername = bufferedReader.readLine();
-                System.out.println(this.clientUsername);
+                System.out.println("Username " + this.clientUsername);
                 this.clientPassword = bufferedReader.readLine();
-                System.out.println("Password" + this.clientPassword);
-                this.clientIPAddress = bufferedReader.readLine();
+                System.out.println("Password " + this.clientPassword);
+//                this.clientIPAddress = bufferedReader.readLine();
 //                System.out.println("IPAddress" + this.clientIPAddress);
 //                this.clientPortNumber = Integer.parseInt(bufferedReader.readLine());
                 clientHandlers.add(this);

@@ -10,45 +10,48 @@ public class Client implements Runnable
     private BufferedReader bufferedReader;
     private BufferedWriter bufferedWriter;
     private String username;
-    private boolean clientConstructedProperly;
 
-    public Client(Socket socket, String username, String password) {
+    public Client(Socket socket) {
         this.serverAddress = "127.0.0.1";
         this.serverPort = 5000;
         try {
             this.socket = socket;
             this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            this.username = username;
-            this.clientConstructedProperly = true;
         } catch (IOException e) {
-            this.clientConstructedProperly = false;
             System.out.println("Couldn't construct the client, closing everything");
             closeEverything(socket, bufferedReader, bufferedWriter);
         } catch (IllegalArgumentException ipAddressException) {
-            this.clientConstructedProperly = false;
             System.out.println("The ip address provided doesn't respect the range limit, closing everything");
             closeEverything(socket, bufferedReader, bufferedWriter);
         }
     }
 
-    public void sendAuthenticationInformation()
-
-    public void sendMessage() {
+    public void writeMessageToSocket(String msg) {
         try {
-            bufferedWriter.write(username);
+            bufferedWriter.write(msg);
             bufferedWriter.newLine();
             bufferedWriter.flush();
-
-            Scanner scanner = new Scanner(System.in);
-            while (socket.isConnected()) {
-                String messageToSend = scanner.nextLine();
-                bufferedWriter.write(username + ": " + messageToSend);
-                bufferedWriter.newLine();
-                bufferedWriter.flush();
-            }
         } catch (IOException e) {
             closeEverything(socket, bufferedReader, bufferedWriter);
+        }
+
+    }
+
+    public void sendAuthenticationInfos() {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter username: ");
+        username = scanner.nextLine();
+        writeMessageToSocket(username);
+        System.out.println("Enter password: ");
+        writeMessageToSocket(scanner.nextLine());
+    }
+
+    public void sendMessage() {
+        Scanner scanner = new Scanner(System.in);
+        while (socket.isConnected()) {
+            String messageToSend = scanner.nextLine();
+            writeMessageToSocket(username + ": " + messageToSend);
         }
     }
 
@@ -84,23 +87,15 @@ public class Client implements Runnable
 
     public static void main(String[] args) throws IOException
     {
-        Scanner scanner = new Scanner(System.in);
-//        System.out.println("Enter your username for the group chat: ");
-//        String username = scanner.nextLine();
-//
-//        System.out.println("Enter your password for the group chat: ");
-//        String password = scanner.nextLine();
-//        String password = "aa";
-        System.out.println("Enter the server address (127.0.0.1) and the server port (5000)\n (ex: 127.0.0.1 5000): ");
-        String serverAddress = scanner.nextLine();
+//        Scanner scanner = new Scanner(System.in);
+//        System.out.println("Enter the server address (127.0.0.1) and the server port (5000) (ex: 127.0.0.1 5000): ");
+//        String serverAddress = scanner.nextLine();
 
-//        System.out.println("Enter the server port (5000): ");
-//        String serverPort = scanner.nextLine();
-
-//        Socket socket = new Socket(serverAddress, Integer.parseInt(serverPort));
         Socket socket = new Socket("127.0.0.1", 5000);
-        Client client = new Client(socket, username, password);
-//        client.listenForMessage();
+        Client client = new Client(socket);
+
+        client.sendAuthenticationInfos();
+
         Thread thread = new Thread(client);
         thread.start();
         client.sendMessage();
