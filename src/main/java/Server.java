@@ -278,13 +278,16 @@ public class Server {
             newMessage.put("message", messageFromClient);
             StringWriter out = new StringWriter();
             try {
+                messagesReader = new FileReader("messageDB.json");
+                messageJsonObj = (JSONObject) parser.parse(messagesReader);
+                messages = (JSONArray) messageJsonObj.get("Messages");
                 newMessage.writeJSONString(out);
                 messages.add(newMessage);
                 messageJsonObj.put("Messages", messages);
                 FileWriter newFileWriter = new FileWriter("messageDB.json", false);
                 newFileWriter.write(messageJsonObj.toJSONString());
                 newFileWriter.close();
-            } catch (IOException e) {
+            } catch (IOException | org.json.simple.parser.ParseException e) {
                 e.printStackTrace();
             }
         }
@@ -296,6 +299,7 @@ public class Server {
             while (socket.isConnected()) {
                 try {
                     messageFromClient = bufferedReader.readLine();
+                    System.out.println(messageFromClient);
                     addMessageToDataBase(messageFromClient);
                     broadcastMessage(messageFromClient);
                 } catch (IOException e) {
