@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -20,6 +21,7 @@ public class Server {
     public JSONParser parser;
     public JSONObject dataJsonObj;
     public JSONArray users;
+    public FileReader newReader;
 
     public Server(ServerSocket serverSocket) {
         parser = new JSONParser();
@@ -46,12 +48,19 @@ public class Server {
             while (!listener.isClosed()) {
                 Socket socket = listener.accept();
                 System.out.println("A new client has connected!");
+                FileReader startServerReader = new FileReader("data.json");
+                dataJsonObj = (JSONObject) parser.parse(startServerReader);
+                users = (JSONArray) dataJsonObj.get("Users");
                 ClientHandler clientHandler = new ClientHandler(socket, clientNumber++);
-
-                Thread thread = new Thread(clientHandler);
-                thread.start();
+                if (clientHandler.constructedCorrectly) {
+                    Thread thread = new Thread(clientHandler);
+                    thread.start();
+                }
+//                System.out.println("passed clienthandler" + clientHandler.constructedCorrectly);
             }
-        } catch (IOException e) {
+        } catch (IOException | org.json.simple.parser.ParseException e) {
+            System.out.println("prob in startServer");
+            e.printStackTrace();
 //            try {
 //                listener.close();
 //            } catch (IOException serverSocketException) {
@@ -66,8 +75,16 @@ public class Server {
         while (iterator.hasNext()) {
             JSONObject jsonUser = (JSONObject) iterator.next();
             if (jsonUser.get("Username").equals(username) && jsonUser.get("Password").equals(password)) {
-                if (jsonUser.get("isConnected").equals(false)) {
+                if (jsonUser.get("isConnected").equals("false")) {
                     jsonUser.put("isConnected", "true");
+                    dataJsonObj.put("Users", users);
+                    try {
+                        FileWriter newFileWriter = new FileWriter("data.json", false);
+                        newFileWriter.write(dataJsonObj.toJSONString());
+                        newFileWriter.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     return true;
                 }
                 else throw new UserIsAlreadyConnectedException();
@@ -91,6 +108,60 @@ public class Server {
             newFileWriter.write(dataJsonObj.toJSONString());
             newFileWriter.close();
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public boolean getUserStatus(String username, String password) {
+        JSONObject objData;
+        try {
+            newReader = new FileReader("data.json");
+            objData = (JSONObject) parser.parse(newReader);
+            JSONArray usersArray = (JSONArray) objData.get("Users");
+            Iterator<JSONObject> iterator = usersArray.iterator();
+            while (iterator.hasNext()) {
+                JSONObject jsonUser = (JSONObject) iterator.next();
+//                    System.out.println("hellllloo");
+                if (jsonUser.get("Username").equals(username) && jsonUser.get("Password").equals(password)) {
+                    System.out.println("hellllloo" + jsonUser.get("isConnected"));
+                    return(Boolean.parseBoolean((String)jsonUser.get("isConnected")));
+                }
+            }
+        } catch (IOException | org.json.simple.parser.ParseException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public void disconnectUser(String username, String password) {
+        JSONObject objData;
+        try {
+//            reader.read(CharBuffer.wrap("data.json"));
+            newReader = new FileReader("data.json");
+            objData = (JSONObject) parser.parse(newReader);
+            JSONArray usersArray = (JSONArray) objData.get("Users");
+            Iterator<JSONObject> iterator = usersArray.iterator();
+            while (iterator.hasNext()) {
+                JSONObject jsonUser = (JSONObject) iterator.next();
+//                    System.out.println("hellllloo");
+                if (jsonUser.get("Username").equals(username) && jsonUser.get("Password").equals(password)) {
+                    if (getUserStatus(username, password)) {
+                        System.out.println("hellllloo" + jsonUser.get("isConnected"));
+                        jsonUser.put("isConnected", "false");
+                        dataJsonObj.put("Users", usersArray);
+                        FileWriter newFileWriter = new FileWriter("data.json", false);
+                        newFileWriter.write(dataJsonObj.toJSONString());
+                        System.out.println("hellllloo" + jsonUser.get("isConnected"));
+                        newFileWriter.close();
+                    }
+                    break;
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("something facked up ma boi");
+            e.printStackTrace();
+        } catch (org.json.simple.parser.ParseException e) {
+            System.out.println("something really facked up ma boi");
             e.printStackTrace();
         }
     }
@@ -123,6 +194,7 @@ public class Server {
         private String clientIPAddress;
         private int clientPortNumber;
         private int clientNumber;
+        private boolean constructedCorrectly;
 
 
         public ClientHandler(Socket socket, int clientNumber) {
@@ -136,6 +208,7 @@ public class Server {
                 this.clientPassword = bufferedReader.readLine();
                 System.out.println("Password " + this.clientPassword);
                 if (verifyAuthentication(clientUsername, clientPassword)) {
+                    this.constructedCorrectly = true;
                     clientHandlers.add(this);
                     System.out.println("user in database");
                     broadcastMessage("Server: " + clientUsername + " has entered the chat!");
@@ -164,12 +237,13 @@ public class Server {
                 System.out.println("Exception user not in data");
                 addUserToDB(clientUsername, clientPassword);
             } catch (UserIsAlreadyConnectedException e) {
+                this.constructedCorrectly = false;
                 System.out.println("User is already connected with this account");
                 try {
                     bufferedWriter.write("Un client est deja connecte avec ce compte");
                     bufferedWriter.newLine();
                     bufferedWriter.flush();
-                    closeEverything(socket, bufferedReader, bufferedWriter);
+                    closeEverythingWithoutRemoving(socket, bufferedReader, bufferedWriter);
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
@@ -214,12 +288,30 @@ public class Server {
         }
 
         public void removeClientHandler() {
+            disconnectUser(clientUsername, clientPassword);
             clientHandlers.remove(this);
             broadcastMessage("Server: " + clientUsername + " " + clientNumber + " has left the chat!");
         }
 
         public void closeEverything(Socket socket, BufferedReader bufferedReader, BufferedWriter bufferedWriter) {
             removeClientHandler();
+            try {
+                if (bufferedReader != null) {
+                    bufferedReader.close();
+                }
+                if (bufferedWriter != null) {
+                    bufferedWriter.close();
+                }
+                if (socket != null) {
+                    socket.close();
+                }
+            } catch (IOException e) {
+                System.out.println("Couldn't close a socket, or a buffered reader/writer, what's going on?");
+                e.printStackTrace();
+            }
+        }
+
+        public void closeEverythingWithoutRemoving(Socket socket, BufferedReader bufferedReader, BufferedWriter bufferedWriter) {
             try {
                 if (bufferedReader != null) {
                     bufferedReader.close();

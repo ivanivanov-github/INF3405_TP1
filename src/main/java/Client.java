@@ -1,5 +1,7 @@
 import java.io.*;
 import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 
 public class Client implements Runnable
@@ -29,7 +31,11 @@ public class Client implements Runnable
 
     public void writeMessageToSocket(String msg) {
         try {
-            bufferedWriter.write(msg);
+            LocalDateTime myDateObj = LocalDateTime.now();
+            DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("dd-MM-yyyy@HH:mm:ss");
+            String formattedDate = myDateObj.format(myFormatObj);
+            String formattedMessage = "[" + username + " - " + serverAddress + " - " + formattedDate + "]:" + msg;
+            bufferedWriter.write(formattedMessage);
             bufferedWriter.newLine();
             bufferedWriter.flush();
         } catch (IOException e) {
@@ -42,16 +48,24 @@ public class Client implements Runnable
         Scanner scanner = new Scanner(System.in);
         System.out.println("Enter username: ");
         username = scanner.nextLine();
-        writeMessageToSocket(username);
-        System.out.println("Enter password: ");
-        writeMessageToSocket(scanner.nextLine());
+        try {
+            bufferedWriter.write(username);
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
+            System.out.println("Enter password: ");
+            bufferedWriter.write(scanner.nextLine());
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void sendMessage() {
         Scanner scanner = new Scanner(System.in);
         while (socket.isConnected()) {
             String messageToSend = scanner.nextLine();
-            writeMessageToSocket(username + ": " + messageToSend);
+            writeMessageToSocket(" " + messageToSend);
         }
     }
 
