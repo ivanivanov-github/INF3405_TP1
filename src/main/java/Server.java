@@ -1,8 +1,10 @@
 import java.io.*;
+import java.lang.reflect.Array;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import CustomExceptions.UserIsAlreadyConnectedException;
 import CustomExceptions.UserNotInDataBaseException;
@@ -255,18 +257,21 @@ public class Server {
         }
 
         public void get15LatestMessages() {
-            int messageCounter = 0;
+//            int messageCounter = 0;
             try {
                 messagesReader = new FileReader("messageDB.json");
                 messageJsonObj = (JSONObject) parser.parse(messagesReader);
                 messages = (JSONArray) messageJsonObj.get("Messages");
-                Iterator<JSONObject> iterator = messages.iterator();
-                while(iterator.hasNext() && messageCounter < 15) {
+//                Iterator<JSONObject> iterator = messages.iterator();
+                List<JSONObject> messagesArrayList = (List<JSONObject>) messageJsonObj.get("Messages");
+                List<JSONObject> latest15Messages = messagesArrayList.subList(Math.max(messagesArrayList.size() - 15, 0), messagesArrayList.size());
+                Iterator<JSONObject> iterator = latest15Messages.iterator();
+                while(iterator.hasNext()) {
                     JSONObject message = (JSONObject) iterator.next();
                     bufferedWriter.write((String) message.get("message"));
                     bufferedWriter.newLine();
                     bufferedWriter.flush();
-                    messageCounter++;
+//                    messageCounter++;
                 }
             } catch (java.io.IOException | org.json.simple.parser.ParseException e) {
                 e.printStackTrace();
