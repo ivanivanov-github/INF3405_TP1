@@ -1,13 +1,13 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 
 import CustomExceptions.UserIsAlreadyConnectedException;
 import CustomExceptions.UserNotInDataBaseException;
 import org.json.simple.JSONArray;
+import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -195,7 +195,9 @@ public class Server {
         private int clientPortNumber;
         private int clientNumber;
         private boolean constructedCorrectly;
-
+        private FileReader messagesReader;
+        private JSONObject messageJsonObj;
+        private JSONArray messages;
 
         public ClientHandler(Socket socket, int clientNumber) {
             try {
@@ -211,6 +213,7 @@ public class Server {
                     this.constructedCorrectly = true;
                     clientHandlers.add(this);
                     System.out.println("user in database");
+                    get15LatestMessages();
                     broadcastMessage("Server: " + clientUsername + " has entered the chat!");
                 } else {
                     bufferedWriter.write("Erreur dans la saisie du mot de passe");
@@ -251,6 +254,41 @@ public class Server {
 
         }
 
+        public void get15LatestMessages() {
+            int messageCounter = 0;
+            try {
+                messagesReader = new FileReader("messageDB.json");
+                messageJsonObj = (JSONObject) parser.parse(messagesReader);
+                messages = (JSONArray) messageJsonObj.get("Messages");
+                Iterator<JSONObject> iterator = messages.iterator();
+                while(iterator.hasNext() && messageCounter < 15) {
+                    JSONObject message = (JSONObject) iterator.next();
+                    bufferedWriter.write((String) message.get("message"));
+                    bufferedWriter.newLine();
+                    bufferedWriter.flush();
+                    messageCounter++;
+                }
+            } catch (java.io.IOException | org.json.simple.parser.ParseException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void addMessageToDataBase(String messageFromClient) {
+            JSONObject newMessage = new JSONObject();
+            newMessage.put("message", messageFromClient);
+            StringWriter out = new StringWriter();
+            try {
+                newMessage.writeJSONString(out);
+                messages.add(newMessage);
+                messageJsonObj.put("Messages", messages);
+                FileWriter newFileWriter = new FileWriter("messageDB.json", false);
+                newFileWriter.write(messageJsonObj.toJSONString());
+                newFileWriter.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
         @Override
         public void run() {
             String messageFromClient;
@@ -258,6 +296,7 @@ public class Server {
             while (socket.isConnected()) {
                 try {
                     messageFromClient = bufferedReader.readLine();
+                    addMessageToDataBase(messageFromClient);
                     broadcastMessage(messageFromClient);
                 } catch (IOException e) {
                     System.out.println("Error handling client#" + clientNumber + ": " + e);
