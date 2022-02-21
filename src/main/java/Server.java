@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import CustomExceptions.InvalidIPAddressAndPortException;
 import CustomExceptions.UserIsAlreadyConnectedException;
 import CustomExceptions.UserNotInDataBaseException;
 import org.json.simple.JSONArray;
@@ -70,6 +71,12 @@ public class Server {
 //                serverSocketException.printStackTrace();
 //            }
         }
+    }
+
+    public boolean isValidIPAddressAndPort(String inputIPAddress, Integer inputPort) {
+        if (!inputIPAddress.equals(this.serverAddress)) return false;
+        if (!inputPort.equals(this.serverPort)) return false;
+        return true;
     }
 
     public boolean verifyAuthentication(String username, String password) throws UserNotInDataBaseException, UserIsAlreadyConnectedException {
@@ -195,18 +202,25 @@ public class Server {
         private String clientPassword;
         private String clientIPAddress;
         private int clientPortNumber;
+        private String inputIPAddress;
+        private int inputPortNumber;
         private int clientNumber;
         private boolean constructedCorrectly;
         private FileReader messagesReader;
         private JSONObject messageJsonObj;
         private JSONArray messages;
 
-        public ClientHandler(Socket socket, int clientNumber) {
+        public  ClientHandler(Socket socket, int clientNumber) {
             try {
                 this.socket = socket;
                 this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
                 this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 this.clientNumber = clientNumber;
+                this.inputIPAddress = bufferedReader.readLine();
+                System.out.println("IPAddress " + this.inputIPAddress);
+                this.inputPortNumber = Integer.parseInt(bufferedReader.readLine());
+                System.out.println("Port number " + this.inputPortNumber);
+                if (!isValidIPAddressAndPort(inputIPAddress, inputPortNumber)) throw new InvalidIPAddressAndPortException();
                 this.clientUsername = bufferedReader.readLine();
                 System.out.println("Username " + this.clientUsername);
                 this.clientPassword = bufferedReader.readLine();
@@ -252,8 +266,18 @@ public class Server {
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
+            } catch (InvalidIPAddressAndPortException e) {
+                this.constructedCorrectly = false;
+                System.out.println("No server in listening on that ip address and port");
+                try {
+                    bufferedWriter.write("Aucun server ecoute sur l'adresse IP et port donnees");
+                    bufferedWriter.newLine();
+                    bufferedWriter.flush();
+                    closeEverythingWithoutRemoving(socket, bufferedReader, bufferedWriter);
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
             }
-
         }
 
         public void get15LatestMessages() {
