@@ -1,5 +1,7 @@
 import java.io.*;
 import java.lang.reflect.Array;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -61,6 +63,7 @@ public class Server {
                 }
 //                System.out.println("passed clienthandler" + clientHandler.constructedCorrectly);
             }
+            System.out.println("prob in startServer");
         } catch (IOException | org.json.simple.parser.ParseException e) {
             System.out.println("prob in startServer");
             e.printStackTrace();
@@ -70,6 +73,8 @@ public class Server {
 //                System.out.println("Couldn't close the ServerSocket, what's going on?");
 //                serverSocketException.printStackTrace();
 //            }
+        } catch (java.nio.channels.IllegalBlockingModeException e) {
+            System.out.println("prob in startServer");
         }
     }
 
@@ -142,6 +147,32 @@ public class Server {
         return false;
     }
 
+    public void disconnectAllConnectedUsers() {
+        JSONObject objData;
+        try {
+            FileReader newReader = new FileReader("data.json");
+            objData = (JSONObject) parser.parse(newReader);
+            JSONArray usersArray = (JSONArray) objData.get("Users");
+            Iterator<JSONObject> iterator = usersArray.iterator();
+            while (iterator.hasNext()) {
+                JSONObject jsonUser = (JSONObject) iterator.next();
+                if (jsonUser.get("isConnected").equals("true")) {
+                    jsonUser.put("isConnected", "false");
+                    dataJsonObj.put("Users", usersArray);
+                    FileWriter newFileWriter = new FileWriter("data.json", false);
+                    newFileWriter.write(dataJsonObj.toJSONString());
+                    newFileWriter.close();
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("something facked up ma boi");
+            e.printStackTrace();
+        } catch (org.json.simple.parser.ParseException e) {
+            System.out.println("something really facked up ma boi");
+            e.printStackTrace();
+        }
+    }
+
     public void disconnectUser(String username, String password) {
         JSONObject objData;
         try {
@@ -185,12 +216,19 @@ public class Server {
         }
     }
 
-    public static void main(String[] args) throws IOException {
-        ServerSocket serverSocket = new ServerSocket(5000);
-        Server server = new Server(serverSocket);
-        System.out.format("The server is running on %s: %d%n", server.serverAddress, server.serverPort);
-
-        server.startServer();
+    public static void main(String[] args) {
+        try {
+            ServerSocket serverSocket = new ServerSocket(5000);
+            Server server = new Server(serverSocket);
+            System.out.format("The server is running on %s: %d%n", server.serverAddress, server.serverPort);
+            Thread printingHook = new Thread(() -> server.disconnectAllConnectedUsers());
+            Runtime.getRuntime().addShutdownHook(printingHook);
+            server.startServer();
+            System.out.println("prob in startServer");
+        } catch (IOException e) {
+            System.out.println("Disconnecting all the clients");
+//            disconnectAllConnectedUsers();
+        }
     }
 
     private class ClientHandler implements Runnable {
@@ -202,6 +240,7 @@ public class Server {
         private String clientPassword;
         private String clientIPAddress;
         private int clientPortNumber;
+        private InetSocketAddress clientSocketAddress;
         private String inputIPAddress;
         private int inputPortNumber;
         private int clientNumber;
@@ -213,8 +252,14 @@ public class Server {
         public  ClientHandler(Socket socket, int clientNumber) {
             try {
                 this.socket = socket;
+                this.clientSocketAddress = (InetSocketAddress)socket.getRemoteSocketAddress();
+                this.clientIPAddress = clientSocketAddress.getAddress().getHostAddress();
+                this.clientPortNumber = clientSocketAddress.getPort();
+                System.out.println(clientIPAddress);
+                System.out.println(clientPortNumber);
                 this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
                 this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                sendToClientTheirPort(clientPortNumber);
                 this.clientNumber = clientNumber;
                 this.inputIPAddress = bufferedReader.readLine();
                 System.out.println("IPAddress " + this.inputIPAddress);
@@ -232,11 +277,12 @@ public class Server {
                     get15LatestMessages();
                     broadcastMessage("Server: " + clientUsername + " has entered the chat!");
                 } else {
+                    this.constructedCorrectly = false;
                     bufferedWriter.write("Erreur dans la saisie du mot de passe");
                     bufferedWriter.newLine();
                     bufferedWriter.flush();
                     System.out.println("wrong password");
-                    closeEverything(socket, bufferedReader, bufferedWriter);
+                    closeEverythingWithoutRemoving(socket, bufferedReader, bufferedWriter);
                 }
 //                JSONObject obj = new JSONObject();
 //                obj.put("Username", clientUsername);
@@ -255,6 +301,11 @@ public class Server {
             } catch (UserNotInDataBaseException e) {
                 System.out.println("Exception user not in data");
                 addUserToDB(clientUsername, clientPassword);
+                this.constructedCorrectly = true;
+                clientHandlers.add(this);
+                System.out.println("user in database");
+                get15LatestMessages();
+                broadcastMessage("Server: " + clientUsername + " has entered the chat!");
             } catch (UserIsAlreadyConnectedException e) {
                 this.constructedCorrectly = false;
                 System.out.println("User is already connected with this account");
@@ -280,6 +331,16 @@ public class Server {
             }
         }
 
+        public void sendToClientTheirPort(int portNumber) {
+            try {
+                bufferedWriter.write(Integer.toString(portNumber));
+                bufferedWriter.newLine();
+                bufferedWriter.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
         public void get15LatestMessages() {
 //            int messageCounter = 0;
             try {
@@ -297,6 +358,9 @@ public class Server {
                     bufferedWriter.flush();
 //                    messageCounter++;
                 }
+//                bufferedWriter.write("Envoyer un message : ");
+//                bufferedWriter.newLine();
+//                bufferedWriter.flush();
             } catch (java.io.IOException | org.json.simple.parser.ParseException e) {
                 e.printStackTrace();
             }

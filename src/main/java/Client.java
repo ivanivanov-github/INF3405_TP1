@@ -1,3 +1,5 @@
+import CustomExceptions.InvalidPasswordException;
+
 import java.io.*;
 import java.net.*;
 import java.time.LocalDateTime;
@@ -10,6 +12,8 @@ public class Client implements Runnable
     private Socket socket;
     private static String serverAddress;
     private static Integer serverPort;
+//    private InetAddress clientIPAddress;
+    private String clientPort;
     private BufferedReader bufferedReader;
     private BufferedWriter bufferedWriter;
     private String username;
@@ -17,6 +21,7 @@ public class Client implements Runnable
     public Client(Socket socket) {
         try {
             this.socket = socket;
+//            this.clientIPAddress = InetAddress.getLocalHost();
             this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         } catch (IOException e) {
@@ -25,18 +30,26 @@ public class Client implements Runnable
         }
     }
 
-    public void writeFormatedMessageToSocket(String msg) {
-        try {
+    public void printFormatedMessage(String msg) {
+        LocalDateTime myDateObj = LocalDateTime.now();
+        DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("dd-MM-yyyy@HH:mm:ss");
+        String formattedDate = myDateObj.format(myFormatObj);
+        String formattedMessage = "[" + username + " - " + serverAddress + " : " + clientPort + " - " + formattedDate + "]:" + msg;
+        System.out.println(formattedMessage);
+    }
+
+    public void writeFormatedMessageToSocket(String msg) throws IOException {
+//        try {
             LocalDateTime myDateObj = LocalDateTime.now();
             DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("dd-MM-yyyy@HH:mm:ss");
             String formattedDate = myDateObj.format(myFormatObj);
-            String formattedMessage = "[" + username + " - " + serverAddress + " - " + formattedDate + "]:" + msg;
+            String formattedMessage = "[" + username + " - " + serverAddress + " : " + clientPort + " - " + formattedDate + "]:" + msg;
             bufferedWriter.write(formattedMessage);
             bufferedWriter.newLine();
             bufferedWriter.flush();
-        } catch (IOException e) {
-            closeEverything(socket, bufferedReader, bufferedWriter);
-        }
+//        } catch (IOException e) {
+//            closeEverything(socket, bufferedReader, bufferedWriter);
+//        }
     }
 
     public void writeMessageToSocket(String msg) {
@@ -59,7 +72,7 @@ public class Client implements Runnable
             }
             return true;
         } catch (NumberFormatException e) {
-            System.out.println("L'adresse IP et le port doivent contenir seulement des lettres et des points");
+            System.out.println("L'adresse IP doit etre du format Y.X.X.X (Y et X sur 8 bits) avec Y : 1-255 et X : 0-255");
             return false;
         }
     }
@@ -108,7 +121,7 @@ public class Client implements Runnable
             ipAddressInputHandler(scanner);
             portInputHandler(scanner);
             System.out.println("SVP veuillez attendre pendant qu'on essaie de vous connecter a un serveur avec les informations que vous avez rentre...");
-            TimeUnit.SECONDS.sleep(1);
+            TimeUnit.MILLISECONDS.sleep(300);
         }  catch (InterruptedException e) {
             System.out.println("Something went wrong");
         }
@@ -136,30 +149,58 @@ public class Client implements Runnable
         passwordInputHandler(scanner);
     }
 
+    public boolean socketIsConnected() {
+        try {
+            socket.getInputStream();
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
     public void sendMessage() {
-        Scanner scanner = new Scanner(System.in);
-        while (socket.isConnected()) {
-            String messageToSend = scanner.nextLine();
-            writeFormatedMessageToSocket(" " + messageToSend);
+        try {
+            Scanner scanner = new Scanner(System.in);
+            while (socketIsConnected()) {
+                System.out.print("Envoyer un message : ");
+                String messageToSend = scanner.nextLine();
+                printFormatedMessage(messageToSend);
+                writeFormatedMessageToSocket(" " + messageToSend);
+            }
+        } catch (IOException e) {
+            closeEverything(socket, bufferedReader, bufferedWriter);
         }
     }
 
     @Override
     public void run() {
         String msgFromGroupChat;
-
+        // First message sent from server is the client's ip address
+        try {
+            clientPort = bufferedReader.readLine();
+            System.out.println(clientPort);
+        } catch (IOException e) {
+            closeEverything(socket, bufferedReader, bufferedWriter);
+        }
         while (socket.isConnected()) {
             try {
                 msgFromGroupChat = bufferedReader.readLine();
+                if (msgFromGroupChat == "Erreur dans la saisie du mot de passe") throw new InvalidPasswordException();
                 if(msgFromGroupChat == null) throw new IOException();
                 System.out.println(msgFromGroupChat);
             } catch (IOException e) {
                 closeEverything(socket, bufferedReader, bufferedWriter);
+                break;
+            } catch (InvalidPasswordException e) {
+                System.out.println("Erreur dans la saisie du mot de passe \n");
+                closeEverything(socket, bufferedReader, bufferedWriter);
+                break;
             }
         }
     }
 
     public void closeEverything(Socket socket, BufferedReader bufferedReader, BufferedWriter bufferedWriter) {
+        System.out.println("Fermeture de votre connection avec le serveur... \nVeuillez recommencer votre session");
         try {
             if (bufferedReader != null) {
                 bufferedReader.close();
@@ -183,16 +224,21 @@ public class Client implements Runnable
             Socket socket = new Socket();
             SocketAddress socketAddress = new InetSocketAddress(serverAddress, serverPort);
             socket.connect(socketAddress, 5000);
-//            Socket socket = new Socket(serverAddress, serverPort);
             Client client = new Client(socket);
             client.sendIPAddressPortInfos();
             client.sendAuthenticationInfos();
 
             Thread thread = new Thread(client);
             thread.start();
+            // Attendre que le serveur envoie les 15 derniers messages avant que le client puissent envoyer des messages
+            Thread.sleep(200);
             client.sendMessage();
         } catch (SocketTimeoutException e) {
-            System.out.println("Aucun server ecoute sur l'adresse IP et port donnees");
+            System.out.println("\nAucun server ecoute sur l'adresse IP et port donnees \nVeuillez rentrer l'adresse IP et le port d'un serveur qui est en train de rouler");
+        } catch (IllegalArgumentException e) {
+            System.out.println("Le port doit etre un nombre entre 5000 et 5050 \n\n");
+        } catch (InterruptedException e) {
+            System.out.println("Probleme dans le thread sleep \n\n");
         }
 
     }
