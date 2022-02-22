@@ -21,23 +21,51 @@ public class Server {
     private int clientNumber;
     private String serverAddress;
     private int serverPort;
-    public FileWriter writer;
-    public FileReader reader;
+    public FileWriter writerUsersFile;
+    public FileReader readerUsersFile;
+    public FileWriter writerMessagesFile;
+    public FileReader readerMessagesFile;
     public JSONParser parser;
     public JSONObject dataJsonObj;
     public JSONArray users;
+    public JSONObject messagesDataJsonObj;
+    public JSONArray messages;
     public FileReader newReader;
+    public File usersDBFile;
+    public File messagesDBFile;
 
     public Server(ServerSocket serverSocket) {
-        parser = new JSONParser();
         this.serverAddress = "127.0.0.1";
         this.serverPort = 5000;
+        parser = new JSONParser();
+        usersDBFile = new File("usersDB" + serverAddress.replace(".", "") + serverPort + ".json");
+        messagesDBFile = new File("messagesDB" + serverAddress.replace(".", "") + serverPort + ".json");
         try {
             this.listener = serverSocket;
-            writer = new FileWriter("data.json", true);
-            reader = new FileReader("data.json");
-            dataJsonObj = (JSONObject) parser.parse(reader);
+            readerUsersFile = new FileReader(usersDBFile);
+            if (!usersDBFile.isFile()) {
+                usersDBFile.createNewFile();
+                writerUsersFile = new FileWriter(usersDBFile, true);
+                dataJsonObj = new JSONObject();
+                users = new JSONArray();
+                dataJsonObj.put("Users", users);
+                writerUsersFile.write(dataJsonObj.toJSONString());
+                writerUsersFile.flush();
+            }
+            readerMessagesFile = new FileReader(messagesDBFile);
+            if (!messagesDBFile.isFile()) {
+                messagesDBFile.createNewFile();
+                writerMessagesFile = new FileWriter(messagesDBFile, true);
+                messagesDataJsonObj = new JSONObject();
+                messages = new JSONArray();
+                messagesDataJsonObj.put("Messages", messages);
+                writerMessagesFile.write(messagesDataJsonObj.toJSONString());
+                writerMessagesFile.flush();
+            }
+            dataJsonObj = (JSONObject) parser.parse(readerUsersFile);
             users = (JSONArray) dataJsonObj.get("Users");
+            messagesDataJsonObj = (JSONObject) parser.parse(readerMessagesFile);
+            messages = (JSONArray) messagesDataJsonObj.get("Messages");
 //            this.listener.setReuseAddress(true);
 //            InetAddress serverIP = InetAddress.getByName(serverAddress);
 //            this.listener.bind(new InetSocketAddress(serverIP, serverPort));
@@ -53,7 +81,7 @@ public class Server {
             while (!listener.isClosed()) {
                 Socket socket = listener.accept();
                 System.out.println("A new client has connected!");
-                FileReader startServerReader = new FileReader("data.json");
+                FileReader startServerReader = new FileReader(usersDBFile);
                 dataJsonObj = (JSONObject) parser.parse(startServerReader);
                 users = (JSONArray) dataJsonObj.get("Users");
                 ClientHandler clientHandler = new ClientHandler(socket, clientNumber++);
@@ -93,7 +121,7 @@ public class Server {
                     jsonUser.put("isConnected", "true");
                     dataJsonObj.put("Users", users);
                     try {
-                        FileWriter newFileWriter = new FileWriter("data.json", false);
+                        FileWriter newFileWriter = new FileWriter(usersDBFile, false);
                         newFileWriter.write(dataJsonObj.toJSONString());
                         newFileWriter.close();
                     } catch (IOException e) {
@@ -118,7 +146,7 @@ public class Server {
             String jsonText = out.toString();
             users.add(obj);
             dataJsonObj.put("Users", users);
-            FileWriter newFileWriter = new FileWriter("data.json", false);
+            FileWriter newFileWriter = new FileWriter(usersDBFile, false);
             newFileWriter.write(dataJsonObj.toJSONString());
             newFileWriter.close();
         } catch (IOException e) {
@@ -129,7 +157,7 @@ public class Server {
     public boolean getUserStatus(String username, String password) {
         JSONObject objData;
         try {
-            newReader = new FileReader("data.json");
+            newReader = new FileReader(usersDBFile);
             objData = (JSONObject) parser.parse(newReader);
             JSONArray usersArray = (JSONArray) objData.get("Users");
             Iterator<JSONObject> iterator = usersArray.iterator();
@@ -150,7 +178,7 @@ public class Server {
     public void disconnectAllConnectedUsers() {
         JSONObject objData;
         try {
-            FileReader newReader = new FileReader("data.json");
+            FileReader newReader = new FileReader(usersDBFile);
             objData = (JSONObject) parser.parse(newReader);
             JSONArray usersArray = (JSONArray) objData.get("Users");
             Iterator<JSONObject> iterator = usersArray.iterator();
@@ -159,7 +187,7 @@ public class Server {
                 if (jsonUser.get("isConnected").equals("true")) {
                     jsonUser.put("isConnected", "false");
                     dataJsonObj.put("Users", usersArray);
-                    FileWriter newFileWriter = new FileWriter("data.json", false);
+                    FileWriter newFileWriter = new FileWriter(usersDBFile, false);
                     newFileWriter.write(dataJsonObj.toJSONString());
                     newFileWriter.close();
                 }
@@ -176,8 +204,8 @@ public class Server {
     public void disconnectUser(String username, String password) {
         JSONObject objData;
         try {
-//            reader.read(CharBuffer.wrap("data.json"));
-            newReader = new FileReader("data.json");
+//            reader.read(CharBuffer.wrap(usersDBFile));
+            newReader = new FileReader(usersDBFile);
             objData = (JSONObject) parser.parse(newReader);
             JSONArray usersArray = (JSONArray) objData.get("Users");
             Iterator<JSONObject> iterator = usersArray.iterator();
@@ -189,7 +217,7 @@ public class Server {
                         System.out.println("hellllloo" + jsonUser.get("isConnected"));
                         jsonUser.put("isConnected", "false");
                         dataJsonObj.put("Users", usersArray);
-                        FileWriter newFileWriter = new FileWriter("data.json", false);
+                        FileWriter newFileWriter = new FileWriter(usersDBFile, false);
                         newFileWriter.write(dataJsonObj.toJSONString());
                         System.out.println("hellllloo" + jsonUser.get("isConnected"));
                         newFileWriter.close();
@@ -348,7 +376,7 @@ public class Server {
         public void get15LatestMessages() {
 //            int messageCounter = 0;
             try {
-                messagesReader = new FileReader("messageDB.json");
+                messagesReader = new FileReader(messagesDBFile);
                 messageJsonObj = (JSONObject) parser.parse(messagesReader);
                 messages = (JSONArray) messageJsonObj.get("Messages");
 //                Iterator<JSONObject> iterator = messages.iterator();
@@ -375,13 +403,13 @@ public class Server {
             newMessage.put("message", messageFromClient);
             StringWriter out = new StringWriter();
             try {
-                messagesReader = new FileReader("messageDB.json");
+                messagesReader = new FileReader(messagesDBFile);
                 messageJsonObj = (JSONObject) parser.parse(messagesReader);
                 messages = (JSONArray) messageJsonObj.get("Messages");
                 newMessage.writeJSONString(out);
                 messages.add(newMessage);
                 messageJsonObj.put("Messages", messages);
-                FileWriter newFileWriter = new FileWriter("messageDB.json", false);
+                FileWriter newFileWriter = new FileWriter(messagesDBFile, false);
                 newFileWriter.write(messageJsonObj.toJSONString());
                 newFileWriter.close();
             } catch (IOException | org.json.simple.parser.ParseException e) {

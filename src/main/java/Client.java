@@ -64,7 +64,7 @@ public class Client implements Runnable
 
     public static boolean isValidIPAddress(String[] addressBytes) {
         try {
-            Integer addressByte = Integer.parseInt(addressBytes[0]);
+            int addressByte = Integer.parseInt(addressBytes[0]);
             if (addressByte > 255 || addressByte < 1) return false;
             for (int i = 1; i < addressBytes.length; i++) {
                 addressByte = Integer.parseInt(addressBytes[i]);
@@ -79,8 +79,7 @@ public class Client implements Runnable
 
     public static boolean isValidPortNumber(Integer portInput) {
         try {
-            if (portInput > 5050 || portInput < 5000) return false;
-            return true;
+            return portInput > 5050 || portInput < 5000;
         } catch (NumberFormatException e) {
             System.out.println("Le port doit contenir seulement des chiffres");
             return false;
@@ -190,11 +189,11 @@ public class Client implements Runnable
         } catch (IOException e) {
             closeEverything(socket, bufferedReader, bufferedWriter);
         }
-        while (socket.isConnected()) {
+        while (socketIsConnected()) {
             try {
                 msgFromGroupChat = bufferedReader.readLine();
-                if (msgFromGroupChat == "Erreur dans la saisie du mot de passe") throw new InvalidPasswordException();
-                if(msgFromGroupChat == null) throw new IOException();
+                if (msgFromGroupChat.equals("Erreur dans la saisie du mot de passe")) throw new InvalidPasswordException();
+                if(msgFromGroupChat.equals(null)) throw new IOException();
                 System.out.println(msgFromGroupChat);
             } catch (IOException e) {
                 closeEverything(socket, bufferedReader, bufferedWriter);
