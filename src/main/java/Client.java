@@ -34,7 +34,7 @@ public class Client implements Runnable
         LocalDateTime myDateObj = LocalDateTime.now();
         DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("dd-MM-yyyy@HH:mm:ss");
         String formattedDate = myDateObj.format(myFormatObj);
-        String formattedMessage = "[" + username + " - " + serverAddress + " : " + clientPort + " - " + formattedDate + "]:" + msg;
+        String formattedMessage = "[" + username + " - " + serverAddress + " : " + clientPort + " - " + formattedDate + "]: " + msg;
         System.out.println(formattedMessage);
     }
 
@@ -79,7 +79,7 @@ public class Client implements Runnable
 
     public static boolean isValidPortNumber(Integer portInput) {
         try {
-            return portInput > 5050 || portInput < 5000;
+            return portInput <= 5050 && portInput >= 5000;
         } catch (NumberFormatException e) {
             System.out.println("Le port doit contenir seulement des chiffres");
             return false;
@@ -165,7 +165,7 @@ public class Client implements Runnable
         try {
             Scanner scanner = new Scanner(System.in);
             while (socketIsConnected()) {
-                System.out.print("Envoyer un message : ");
+//                System.out.print("Envoyer un message : ");
                 String messageToSend = scanner.nextLine();
                 if (isUnder200Char(messageToSend)) {
                     printFormatedMessage(messageToSend);
@@ -192,8 +192,8 @@ public class Client implements Runnable
         while (socketIsConnected()) {
             try {
                 msgFromGroupChat = bufferedReader.readLine();
+                if(msgFromGroupChat == null) throw new IOException();
                 if (msgFromGroupChat.equals("Erreur dans la saisie du mot de passe")) throw new InvalidPasswordException();
-                if(msgFromGroupChat.equals(null)) throw new IOException();
                 System.out.println(msgFromGroupChat);
             } catch (IOException e) {
                 closeEverything(socket, bufferedReader, bufferedWriter);

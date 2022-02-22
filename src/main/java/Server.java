@@ -42,26 +42,14 @@ public class Server {
         messagesDBFile = new File("messagesDB" + serverAddress.replace(".", "") + serverPort + ".json");
         try {
             this.listener = serverSocket;
-            readerUsersFile = new FileReader(usersDBFile);
             if (!usersDBFile.isFile()) {
-                usersDBFile.createNewFile();
-                writerUsersFile = new FileWriter(usersDBFile, true);
-                dataJsonObj = new JSONObject();
-                users = new JSONArray();
-                dataJsonObj.put("Users", users);
-                writerUsersFile.write(dataJsonObj.toJSONString());
-                writerUsersFile.flush();
+                this.createUsersDB();
             }
-            readerMessagesFile = new FileReader(messagesDBFile);
             if (!messagesDBFile.isFile()) {
-                messagesDBFile.createNewFile();
-                writerMessagesFile = new FileWriter(messagesDBFile, true);
-                messagesDataJsonObj = new JSONObject();
-                messages = new JSONArray();
-                messagesDataJsonObj.put("Messages", messages);
-                writerMessagesFile.write(messagesDataJsonObj.toJSONString());
-                writerMessagesFile.flush();
+                this.createMessagesDB();
             }
+            readerUsersFile = new FileReader(usersDBFile);
+            readerMessagesFile = new FileReader(messagesDBFile);
             dataJsonObj = (JSONObject) parser.parse(readerUsersFile);
             users = (JSONArray) dataJsonObj.get("Users");
             messagesDataJsonObj = (JSONObject) parser.parse(readerMessagesFile);
@@ -71,9 +59,46 @@ public class Server {
 //            this.listener.bind(new InetSocketAddress(serverIP, serverPort));
         } catch (IOException | org.json.simple.parser.ParseException e) {
 //            this.serverConstructedProperly = false;
-//            System.out.println("Couldn't construct the server, what's going on?");
+            System.out.println("Couldn't construct the server, what's going on?");
 //            e.printStackTrace();
         }
+    }
+
+    public void createUsersDB() {
+        try {
+            usersDBFile.createNewFile();
+            readerUsersFile = new FileReader(usersDBFile);
+            writerUsersFile = new FileWriter(usersDBFile, true);
+            dataJsonObj = new JSONObject();
+            users = new JSONArray();
+            dataJsonObj.put("Users", users);
+            writerUsersFile.write(dataJsonObj.toJSONString());
+            writerUsersFile.flush();
+        } catch (IOException e) {
+            System.out.println("Could not create json database for messages");
+        }
+    }
+
+    public void createMessagesDB() {
+        try {
+            messagesDBFile.createNewFile();
+            readerMessagesFile = new FileReader(messagesDBFile);
+            writerMessagesFile = new FileWriter(messagesDBFile, true);
+            messagesDataJsonObj = new JSONObject();
+            messages = new JSONArray();
+            addWelcomeMessagesTo(messages);
+            messagesDataJsonObj.put("Messages", messages);
+            writerMessagesFile.write(messagesDataJsonObj.toJSONString());
+            writerMessagesFile.flush();
+        } catch (IOException e) {
+            System.out.println("Could not create json database for users");
+        }
+    }
+
+    public void addWelcomeMessagesTo(JSONArray messages) {
+        JSONObject welcomeMessage = new JSONObject();
+        welcomeMessage.put("message", "Bienvenue au meilleur chat serveur du monde! Entrez vos messages en dessous!");
+        messages.add(welcomeMessage);
     }
 
     public void startServer() {
