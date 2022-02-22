@@ -216,13 +216,17 @@ public class Server {
         }
     }
 
+    public void shutDownHookDisconnectAllUsers(Server server) {
+        Thread printingHook = new Thread(() -> server.disconnectAllConnectedUsers());
+        Runtime.getRuntime().addShutdownHook(printingHook);
+    }
+
     public static void main(String[] args) {
         try {
             ServerSocket serverSocket = new ServerSocket(5000);
             Server server = new Server(serverSocket);
             System.out.format("The server is running on %s: %d%n", server.serverAddress, server.serverPort);
-            Thread printingHook = new Thread(() -> server.disconnectAllConnectedUsers());
-            Runtime.getRuntime().addShutdownHook(printingHook);
+            server.shutDownHookDisconnectAllUsers(server);
             server.startServer();
             System.out.println("prob in startServer");
         } catch (IOException e) {

@@ -158,14 +158,22 @@ public class Client implements Runnable
         }
     }
 
+    public boolean isUnder200Char(String msg) {
+        return msg.length() < 200;
+    }
+
     public void sendMessage() {
         try {
             Scanner scanner = new Scanner(System.in);
             while (socketIsConnected()) {
                 System.out.print("Envoyer un message : ");
                 String messageToSend = scanner.nextLine();
-                printFormatedMessage(messageToSend);
-                writeFormatedMessageToSocket(" " + messageToSend);
+                if (isUnder200Char(messageToSend)) {
+                    printFormatedMessage(messageToSend);
+                    writeFormatedMessageToSocket(" " + messageToSend);
+                } else {
+                    System.out.println("Votre message depasse 200 characteres!");
+                }
             }
         } catch (IOException e) {
             closeEverything(socket, bufferedReader, bufferedWriter);
