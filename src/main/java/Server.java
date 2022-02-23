@@ -38,8 +38,8 @@ public class Server {
         this.serverAddress = "127.0.0.1";
         this.serverPort = 5000;
         parser = new JSONParser();
-        usersDBFile = new File("usersDB" + serverAddress.replace(".", "") + serverPort + ".json");
-        messagesDBFile = new File("messagesDB" + serverAddress.replace(".", "") + serverPort + ".json");
+        usersDBFile = new File("usersDB.json");
+        messagesDBFile = new File("messagesDB.json");
         try {
             this.listener = serverSocket;
             if (!usersDBFile.isFile()) {
