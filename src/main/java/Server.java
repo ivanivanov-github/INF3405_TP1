@@ -46,6 +46,25 @@ public class Server {
         this.initializeDBReaders();
     }
 
+    public void startServer() {
+        try {
+            while (!listener.isClosed()) {
+                Socket socket = listener.accept();
+                ClientHandler clientHandler = new ClientHandler(socket);
+                if (clientHandler.constructedCorrectly) {
+                    Thread thread = new Thread(clientHandler);
+                    thread.start();
+                }
+            }
+            System.out.println("prob in startServer");
+        } catch (IOException e) {
+            System.out.println("prob in startServer");
+            e.printStackTrace();
+        } catch (java.nio.channels.IllegalBlockingModeException e) {
+            System.out.println("prob in startServer");
+        }
+    }
+
     public void initializeDBReaders() {
         try {
             readerUsersFile = new FileReader(usersDBFile);
@@ -72,7 +91,7 @@ public class Server {
             InetAddress serverIP = InetAddress.getByName(serverAddress);
             this.listener.bind(new InetSocketAddress(serverIP, serverPort));
         } catch (IOException e) {
-            System.out.println("Couldn't congifure the server socket");
+            System.out.println("Couldn't configure the server socket");
             e.printStackTrace();
         }
     }
@@ -114,25 +133,6 @@ public class Server {
         messages.add(welcomeMessage);
     }
 
-    public void startServer() {
-        try {
-            while (!listener.isClosed()) {
-                Socket socket = listener.accept();
-                ClientHandler clientHandler = new ClientHandler(socket);
-                if (clientHandler.constructedCorrectly) {
-                    Thread thread = new Thread(clientHandler);
-                    thread.start();
-                }
-            }
-            System.out.println("prob in startServer");
-        } catch (IOException e) {
-            System.out.println("prob in startServer");
-            e.printStackTrace();
-        } catch (java.nio.channels.IllegalBlockingModeException e) {
-            System.out.println("prob in startServer");
-        }
-    }
-
     public boolean verifyAuthentication(String username, String password) throws UserNotInDataBaseException, UserIsAlreadyConnectedException {
         Iterator<JSONObject> iterator = users.iterator();
         while (iterator.hasNext()) {
@@ -164,7 +164,6 @@ public class Server {
         StringWriter out = new StringWriter();
         try {
             obj.writeJSONString(out);
-            String jsonText = out.toString();
             users.add(obj);
             usersJsonObj.put("Users", users);
             FileWriter newFileWriter = new FileWriter(usersDBFile, false);

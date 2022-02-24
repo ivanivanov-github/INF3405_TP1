@@ -140,6 +140,7 @@ public class Client implements Runnable
                 System.out.println("Votre message depasse 200 characteres!");
             }
         }
+        scanner.close();
     }
 
     @Override
