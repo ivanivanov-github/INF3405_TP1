@@ -8,6 +8,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 import CustomExceptions.UserIsAlreadyConnectedException;
 import CustomExceptions.UserNotInDataBaseException;
@@ -17,8 +19,8 @@ import org.json.simple.parser.JSONParser;
 
 public class Server {
     private ServerSocket listener;
-    private String serverAddress;
-    private int serverPort;
+    private static String serverAddress;
+    private static int serverPort;
     public FileWriter writerUsersFile;
     public FileReader readerUsersFile;
     public FileWriter writerMessagesFile;
@@ -83,8 +85,6 @@ public class Server {
     }
 
     public void configureServerSocket() {
-        this.serverAddress = "127.0.0.1";
-        this.serverPort = 5000;
         try {
             this.listener = new ServerSocket();
             this.listener.setReuseAddress(true);
@@ -255,12 +255,77 @@ public class Server {
         Runtime.getRuntime().addShutdownHook(disconnectHook);
     }
 
+    public static boolean isValidIPAddress(String[] addressBytes) {
+        try {
+            int addressByte = Integer.parseInt(addressBytes[0]);
+            if (addressByte > 255 || addressByte < 1) return false;
+            for (int i = 1; i < addressBytes.length; i++) {
+                addressByte = Integer.parseInt(addressBytes[i]);
+                if (addressByte >  255 || addressByte < 0) return false;
+            }
+            return true;
+        } catch (NumberFormatException e) {
+            System.out.println("L'adresse IP doit etre du format Y.X.X.X (Y et X sur 8 bits) avec Y : 1-255 et X : 0-255");
+            return false;
+        }
+    }
+
+    public static boolean isValidPortNumber(Integer portInput) {
+        try {
+            return portInput <= 5050 && portInput >= 5000;
+        } catch (NumberFormatException e) {
+            System.out.println("Le port doit contenir seulement des chiffres");
+            return false;
+        }
+    }
+
+    public static void ipAddressInputHandler(Scanner scanner) {
+        String[] addressBytes = {"256", "256", "256", "256"};
+        while(!isValidIPAddress(addressBytes) || addressBytes.length != 4) {
+            System.out.println("Entrez l'adresse IP du serveur: ");
+            serverAddress = scanner.nextLine();
+            addressBytes = serverAddress.split("\\.", 0);
+            if (!isValidIPAddress(addressBytes) || addressBytes.length != 4){
+                System.out.print("\nL'adresse entrée est invalide \n\n");
+            }
+        }
+    }
+
+    public static void portInputHandler(Scanner scanner) {
+        serverPort = 0;
+        try {
+            while(!isValidPortNumber(serverPort)) {
+                System.out.print("Entrez le port d'écoute du serveur: \n");
+                serverPort = Integer.parseInt(scanner.nextLine());
+                if(!isValidPortNumber(serverPort)) {
+                    System.out.print("\nLe port doit être compris entre 5000 et 5050 \n\n");
+                }
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("Le port doit etre un nombre entre 5000 et 5050 \n\n");
+            portInputHandler(new Scanner(System.in));
+        }
+    }
+
+    public static void serverInfosInputHandler() {
+        try {
+            Scanner scanner = new Scanner(System.in);
+            ipAddressInputHandler(scanner);
+            portInputHandler(scanner);
+            System.out.println("SVP veuillez attendre pendant qu'on essaie de vous connecter a un serveur avec les informations que vous avez rentre...");
+            TimeUnit.MILLISECONDS.sleep(300);
+        }  catch (InterruptedException e) {
+            System.out.println("Something went wrong");
+        }
+    }
+
     public static void main(String[] args) {
-            Server server = new Server();
-            System.out.format("The server is running on %s: %d%n", server.serverAddress, server.serverPort);
-            server.shutDownHookDisconnectAllUsers(server);
-            server.startServer();
-            System.out.println("Problem in startServer");
+        serverInfosInputHandler();
+        Server server = new Server();
+        System.out.format("The server is running on %s: %d%n", server.serverAddress, server.serverPort);
+        server.shutDownHookDisconnectAllUsers(server);
+        server.startServer();
+        System.out.println("Problem in startServer");
     }
 
     private class ClientHandler implements Runnable {
