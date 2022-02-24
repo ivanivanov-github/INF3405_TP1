@@ -30,27 +30,27 @@ public class Client implements Runnable
         }
     }
 
-    public void printFormatedMessage(String msg) {
-        LocalDateTime myDateObj = LocalDateTime.now();
-        DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("dd-MM-yyyy@HH:mm:ss");
-        String formattedDate = myDateObj.format(myFormatObj);
-        String formattedMessage = "[" + username + " - " + serverAddress + " : " + clientPort + " - " + formattedDate + "]: " + msg;
-        System.out.println(formattedMessage);
-    }
+//    public void printFormatedMessage(String msg) {
+//        LocalDateTime myDateObj = LocalDateTime.now();
+//        DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("dd-MM-yyyy@HH:mm:ss");
+//        String formattedDate = myDateObj.format(myFormatObj);
+//        String formattedMessage = "[" + username + " - " + serverAddress + " : " + clientPort + " - " + formattedDate + "]: " + msg;
+//        System.out.println(formattedMessage);
+//    }
 
-    public void writeFormatedMessageToSocket(String msg) throws IOException {
-//        try {
-            LocalDateTime myDateObj = LocalDateTime.now();
-            DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("dd-MM-yyyy@HH:mm:ss");
-            String formattedDate = myDateObj.format(myFormatObj);
-            String formattedMessage = "[" + username + " - " + serverAddress + " : " + clientPort + " - " + formattedDate + "]:" + msg;
-            bufferedWriter.write(formattedMessage);
-            bufferedWriter.newLine();
-            bufferedWriter.flush();
-//        } catch (IOException e) {
-//            closeEverything(socket, bufferedReader, bufferedWriter);
-//        }
-    }
+//    public void writeFormatedMessageToSocket(String msg) throws IOException {
+////        try {
+//            LocalDateTime myDateObj = LocalDateTime.now();
+//            DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("dd-MM-yyyy@HH:mm:ss");
+//            String formattedDate = myDateObj.format(myFormatObj);
+//            String formattedMessage = "[" + username + " - " + serverAddress + " : " + clientPort + " - " + formattedDate + "]:" + msg;
+//            bufferedWriter.write(formattedMessage);
+//            bufferedWriter.newLine();
+//            bufferedWriter.flush();
+////        } catch (IOException e) {
+////            closeEverything(socket, bufferedReader, bufferedWriter);
+////        }
+//    }
 
     public void writeMessageToSocket(String msg) {
         try {
@@ -59,6 +59,7 @@ public class Client implements Runnable
             bufferedWriter.flush();
         } catch (IOException e) {
             e.printStackTrace();
+            closeEverything(socket, bufferedReader, bufferedWriter);
         }
     }
 
@@ -126,19 +127,19 @@ public class Client implements Runnable
         }
     }
 
-    public void sendIPAddressPortInfos() {
-        writeMessageToSocket(serverAddress);
-        writeMessageToSocket(Integer.toString(serverPort));
-    }
+//    public void sendIPAddressPortInfos() {
+//        writeMessageToSocket(serverAddress);
+//        writeMessageToSocket(Integer.toString(serverPort));
+//    }
 
     public void usernameInputHandler(Scanner scanner) {
-        System.out.println("Enter username: ");
+        System.out.println("Entrez votre nom d'utilisateur: ");
         username = scanner.nextLine();
         writeMessageToSocket(username);
     }
 
     public void passwordInputHandler(Scanner scanner) {
-        System.out.println("Enter password: ");
+        System.out.println("Entrez votre mot de passe: ");
         writeMessageToSocket(scanner.nextLine());
     }
 
@@ -162,20 +163,16 @@ public class Client implements Runnable
     }
 
     public void sendMessage() {
-        try {
-            Scanner scanner = new Scanner(System.in);
-            while (socketIsConnected()) {
+        Scanner scanner = new Scanner(System.in);
+        while (socketIsConnected()) {
 //                System.out.print("Envoyer un message : ");
-                String messageToSend = scanner.nextLine();
-                if (isUnder200Char(messageToSend)) {
-                    printFormatedMessage(messageToSend);
-                    writeFormatedMessageToSocket(" " + messageToSend);
-                } else {
-                    System.out.println("Votre message depasse 200 characteres!");
-                }
+            String messageToSend = scanner.nextLine();
+            if (isUnder200Char(messageToSend)) {
+//                printFormatedMessage(messageToSend);
+                writeMessageToSocket(" " + messageToSend);
+            } else {
+                System.out.println("Votre message depasse 200 characteres!");
             }
-        } catch (IOException e) {
-            closeEverything(socket, bufferedReader, bufferedWriter);
         }
     }
 
@@ -183,12 +180,12 @@ public class Client implements Runnable
     public void run() {
         String msgFromGroupChat;
         // First message sent from server is the client's ip address
-        try {
-            clientPort = bufferedReader.readLine();
-            System.out.println(clientPort);
-        } catch (IOException e) {
-            closeEverything(socket, bufferedReader, bufferedWriter);
-        }
+//        try {
+//            clientPort = bufferedReader.readLine();
+//            System.out.println(clientPort);
+//        } catch (IOException e) {
+//            closeEverything(socket, bufferedReader, bufferedWriter);
+//        }
         while (socketIsConnected()) {
             try {
                 msgFromGroupChat = bufferedReader.readLine();
@@ -232,21 +229,18 @@ public class Client implements Runnable
             SocketAddress socketAddress = new InetSocketAddress(serverAddress, serverPort);
             socket.connect(socketAddress, 5000);
             Client client = new Client(socket);
-            client.sendIPAddressPortInfos();
+//            client.sendIPAddressPortInfos();
             client.sendAuthenticationInfos();
 
             Thread thread = new Thread(client);
             thread.start();
             // Attendre que le serveur envoie les 15 derniers messages avant que le client puissent envoyer des messages
-            Thread.sleep(200);
+//            Thread.sleep(200);
             client.sendMessage();
         } catch (SocketTimeoutException e) {
-            System.out.println("\nAucun server ecoute sur l'adresse IP et port donnees \nVeuillez rentrer l'adresse IP et le port d'un serveur qui est en train de rouler");
-        } catch (IllegalArgumentException e) {
-            System.out.println("Le port doit etre un nombre entre 5000 et 5050 \n\n");
-        } catch (InterruptedException e) {
-            System.out.println("Probleme dans le thread sleep \n\n");
-        }
-
+            System.out.println("\nAucun serveur n'ecoute sur l'adresse IP et port donnees \nVeuillez rentrer l'adresse IP et le port d'un serveur qui est en marche");
+        } //catch (InterruptedException e) {
+//            System.out.println("Probleme dans le thread sleep \n\n");
+//        }
     }
 }

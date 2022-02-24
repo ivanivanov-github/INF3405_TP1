@@ -4,6 +4,8 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -312,17 +314,17 @@ public class Server {
                 this.clientSocketAddress = (InetSocketAddress)socket.getRemoteSocketAddress();
                 this.clientIPAddress = clientSocketAddress.getAddress().getHostAddress();
                 this.clientPortNumber = clientSocketAddress.getPort();
-                System.out.println(clientIPAddress);
-                System.out.println(clientPortNumber);
+//                System.out.println(clientIPAddress);
+//                System.out.println(clientPortNumber);
                 this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
                 this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                sendToClientTheirPort(clientPortNumber);
+//                sendToClientTheirPort(clientPortNumber);
                 this.clientNumber = clientNumber;
-                this.inputIPAddress = bufferedReader.readLine();
-                System.out.println("IPAddress " + this.inputIPAddress);
-                this.inputPortNumber = Integer.parseInt(bufferedReader.readLine());
-                System.out.println("Port number " + this.inputPortNumber);
-                if (!isValidIPAddressAndPort(inputIPAddress, inputPortNumber)) throw new InvalidIPAddressAndPortException();
+//                this.inputIPAddress = bufferedReader.readLine();
+//                System.out.println("IPAddress " + this.inputIPAddress);
+//                this.inputPortNumber = Integer.parseInt(bufferedReader.readLine());
+                System.out.println("Port number " + this.clientPortNumber);
+//                if (!isValidIPAddressAndPort(inputIPAddress, inputPortNumber)) throw new InvalidIPAddressAndPortException();
                 this.clientUsername = bufferedReader.readLine();
                 System.out.println("Username " + this.clientUsername);
                 this.clientPassword = bufferedReader.readLine();
@@ -374,29 +376,29 @@ public class Server {
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
-            } catch (InvalidIPAddressAndPortException e) {
-                this.constructedCorrectly = false;
-                System.out.println("No server in listening on that ip address and port");
-                try {
-                    bufferedWriter.write("Aucun server ecoute sur l'adresse IP et port donnees");
-                    bufferedWriter.newLine();
-                    bufferedWriter.flush();
-                    closeEverythingWithoutRemoving(socket, bufferedReader, bufferedWriter);
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                }
-            }
+            } //catch (InvalidIPAddressAndPortException e) {
+//                this.constructedCorrectly = false;
+//                System.out.println("No server in listening on that ip address and port");
+//                try {
+//                    bufferedWriter.write("Aucun server ecoute sur l'adresse IP et port donnees");
+//                    bufferedWriter.newLine();
+//                    bufferedWriter.flush();
+//                    closeEverythingWithoutRemoving(socket, bufferedReader, bufferedWriter);
+//                } catch (IOException ex) {
+//                    ex.printStackTrace();
+//                }
+//            }
         }
 
-        public void sendToClientTheirPort(int portNumber) {
-            try {
-                bufferedWriter.write(Integer.toString(portNumber));
-                bufferedWriter.newLine();
-                bufferedWriter.flush();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+//        public void sendToClientTheirPort(int portNumber) {
+//            try {
+//                bufferedWriter.write(Integer.toString(portNumber));
+//                bufferedWriter.newLine();
+//                bufferedWriter.flush();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
 
         public void get15LatestMessages() {
 //            int messageCounter = 0;
@@ -442,6 +444,14 @@ public class Server {
             }
         }
 
+        public String formatMessage(String msg) {
+            LocalDateTime myDateObj = LocalDateTime.now();
+            DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("dd-MM-yyyy@HH:mm:ss");
+            String formattedDate = myDateObj.format(myFormatObj);
+            String formattedMessage = "[" + clientUsername + " - " + clientIPAddress + " : " + clientPortNumber + " - " + formattedDate + "]:" + msg;
+            return formattedMessage;
+        }
+
         @Override
         public void run() {
             String messageFromClient;
@@ -450,8 +460,9 @@ public class Server {
                 try {
                     messageFromClient = bufferedReader.readLine();
                     System.out.println(messageFromClient);
-                    addMessageToDataBase(messageFromClient);
-                    broadcastMessage(messageFromClient);
+                    String formatedMessage = formatMessage(messageFromClient);
+                    addMessageToDataBase(formatedMessage);
+                    broadcastMessage(formatedMessage);
                 } catch (IOException e) {
                     System.out.println("Error handling client#" + clientNumber + ": " + e);
                     closeEverything(socket, bufferedReader, bufferedWriter);
@@ -468,11 +479,11 @@ public class Server {
         public void broadcastMessage(String messageToSend) {
             for (ClientHandler clientHandler : clientHandlers) {
                 try {
-                    if (!clientHandler.clientUsername.equals(clientUsername)) {
+//                    if (!clientHandler.clientUsername.equals(clientUsername)) {
                         clientHandler.bufferedWriter.write(messageToSend);
                         clientHandler.bufferedWriter.newLine();
                         clientHandler.bufferedWriter.flush();
-                    }
+//                    }
                 } catch (IOException e) {
                     System.out.println("Client" + clientNumber + " had a prob with broadcasting his message");
                     closeEverything(socket, bufferedReader, bufferedWriter);
