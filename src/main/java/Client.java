@@ -226,6 +226,8 @@ public class Client implements Runnable
 
         try {
             Socket socket = new Socket();
+//            System.out.println(serverAddress);
+//            System.out.println(serverPort);
             SocketAddress socketAddress = new InetSocketAddress(serverAddress, serverPort);
             socket.connect(socketAddress, 5000);
             Client client = new Client(socket);

@@ -36,33 +36,62 @@ public class Server {
     public File usersDBFile;
     public File messagesDBFile;
 
-    public Server(ServerSocket serverSocket) {
-        this.serverAddress = "127.0.0.1";
-        this.serverPort = 5000;
+    public Server() {
+//        this.serverAddress = "127.0.0.1";
+//        this.serverPort = 5000;
+        this.configureServerSocket();
         parser = new JSONParser();
         usersDBFile = new File("usersDB.json");
         messagesDBFile = new File("messagesDB.json");
-        try {
-            this.listener = serverSocket;
+//        try {
+//            this.listener = new ServerSocket(serverPort);
+//            this.listener = new ServerSocket();
+//            messages = (JSONArray) messagesDataJsonObj.get("Messages");
+//            this.listener.setReuseAddress(true);
+//            InetAddress serverIP = InetAddress.getByName(serverAddress);
             if (!usersDBFile.isFile()) {
                 this.createUsersDB();
             }
             if (!messagesDBFile.isFile()) {
                 this.createMessagesDB();
             }
+            this.initializeDBReaders();
+//            this.listener.bind(new InetSocketAddress(serverIP, serverPort));
+//        } catch (IOException | org.json.simple.parser.ParseException e) {
+//            this.serverConstructedProperly = false;
+//            System.out.println("Couldn't construct the server, what's going on?");
+//            e.printStackTrace();
+//        }
+    }
+
+    public void initializeDBReaders() {
+        try {
             readerUsersFile = new FileReader(usersDBFile);
             readerMessagesFile = new FileReader(messagesDBFile);
             dataJsonObj = (JSONObject) parser.parse(readerUsersFile);
             users = (JSONArray) dataJsonObj.get("Users");
             messagesDataJsonObj = (JSONObject) parser.parse(readerMessagesFile);
             messages = (JSONArray) messagesDataJsonObj.get("Messages");
-//            this.listener.setReuseAddress(true);
-//            InetAddress serverIP = InetAddress.getByName(serverAddress);
-//            this.listener.bind(new InetSocketAddress(serverIP, serverPort));
-        } catch (IOException | org.json.simple.parser.ParseException e) {
-//            this.serverConstructedProperly = false;
-            System.out.println("Couldn't construct the server, what's going on?");
-//            e.printStackTrace();
+        } catch (IOException e) {
+            System.out.println("Couldn't initialize the database readers");
+            e.printStackTrace();
+        } catch (org.json.simple.parser.ParseException e) {
+            System.out.println("Couldn't parse the json files");
+            e.printStackTrace();
+        }
+    }
+
+    public void configureServerSocket() {
+        this.serverAddress = "127.0.0.1";
+        this.serverPort = 5000;
+        try {
+            this.listener = new ServerSocket();
+            this.listener.setReuseAddress(true);
+            InetAddress serverIP = InetAddress.getByName(serverAddress);
+            this.listener.bind(new InetSocketAddress(serverIP, serverPort));
+        } catch (IOException e) {
+            System.out.println("Couldn't congifure the server socket");
+            e.printStackTrace();
         }
     }
 
@@ -277,17 +306,17 @@ public class Server {
     }
 
     public static void main(String[] args) {
-        try {
-            ServerSocket serverSocket = new ServerSocket(5000);
-            Server server = new Server(serverSocket);
+//        try {
+//            ServerSocket serverSocket = new ServerSocket(5000);
+            Server server = new Server();
             System.out.format("The server is running on %s: %d%n", server.serverAddress, server.serverPort);
             server.shutDownHookDisconnectAllUsers(server);
             server.startServer();
             System.out.println("prob in startServer");
-        } catch (IOException e) {
-            System.out.println("Disconnecting all the clients");
-//            disconnectAllConnectedUsers();
-        }
+//        } catch (IOException e) {
+//            System.out.println("Disconnecting all the clients");
+////            disconnectAllConnectedUsers();
+//        }
     }
 
     private class ClientHandler implements Runnable {
