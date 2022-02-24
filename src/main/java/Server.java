@@ -136,11 +136,11 @@ public class Server {
         try {
             while (!listener.isClosed()) {
                 Socket socket = listener.accept();
-                System.out.println("A new client has connected!");
-                FileReader startServerReader = new FileReader(usersDBFile);
-                dataJsonObj = (JSONObject) parser.parse(startServerReader);
-                users = (JSONArray) dataJsonObj.get("Users");
-                ClientHandler clientHandler = new ClientHandler(socket, clientNumber++);
+//                System.out.println("A new client has connected!");
+//                readerUsersFile = new FileReader(usersDBFile);
+//                dataJsonObj = (JSONObject) parser.parse(readerUsersFile);
+//                users = (JSONArray) dataJsonObj.get("Users");
+                ClientHandler clientHandler = new ClientHandler(socket);
                 if (clientHandler.constructedCorrectly) {
                     Thread thread = new Thread(clientHandler);
                     thread.start();
@@ -148,7 +148,7 @@ public class Server {
 //                System.out.println("passed clienthandler" + clientHandler.constructedCorrectly);
             }
             System.out.println("prob in startServer");
-        } catch (IOException | org.json.simple.parser.ParseException e) {
+        } catch (IOException e) {
             System.out.println("prob in startServer");
             e.printStackTrace();
 //            try {
@@ -301,8 +301,8 @@ public class Server {
     }
 
     public void shutDownHookDisconnectAllUsers(Server server) {
-        Thread printingHook = new Thread(() -> server.disconnectAllConnectedUsers());
-        Runtime.getRuntime().addShutdownHook(printingHook);
+        Thread disconnectHook = new Thread(() -> server.disconnectAllConnectedUsers());
+        Runtime.getRuntime().addShutdownHook(disconnectHook);
     }
 
     public static void main(String[] args) {
@@ -331,24 +331,25 @@ public class Server {
         private InetSocketAddress clientSocketAddress;
         private String inputIPAddress;
         private int inputPortNumber;
-        private int clientNumber;
+//        private int clientNumber;
         private boolean constructedCorrectly;
         private FileReader messagesReader;
         private JSONObject messageJsonObj;
         private JSONArray messages;
 
-        public  ClientHandler(Socket socket, int clientNumber) {
+        public  ClientHandler(Socket socket) {
             try {
                 this.socket = socket;
-                this.clientSocketAddress = (InetSocketAddress)socket.getRemoteSocketAddress();
-                this.clientIPAddress = clientSocketAddress.getAddress().getHostAddress();
-                this.clientPortNumber = clientSocketAddress.getPort();
+                initializeConnexionInfos();
+//                this.clientSocketAddress = (InetSocketAddress)socket.getRemoteSocketAddress();
+//                this.clientIPAddress = clientSocketAddress.getAddress().getHostAddress();
+//                this.clientPortNumber = clientSocketAddress.getPort();
 //                System.out.println(clientIPAddress);
 //                System.out.println(clientPortNumber);
                 this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
                 this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 //                sendToClientTheirPort(clientPortNumber);
-                this.clientNumber = clientNumber;
+//                this.clientNumber = clientNumber;
 //                this.inputIPAddress = bufferedReader.readLine();
 //                System.out.println("IPAddress " + this.inputIPAddress);
 //                this.inputPortNumber = Integer.parseInt(bufferedReader.readLine());
@@ -359,18 +360,20 @@ public class Server {
                 this.clientPassword = bufferedReader.readLine();
                 System.out.println("Password " + this.clientPassword);
                 if (verifyAuthentication(clientUsername, clientPassword)) {
-                    this.constructedCorrectly = true;
-                    clientHandlers.add(this);
-                    System.out.println("user in database");
-                    get15LatestMessages();
-                    broadcastMessage("Server: " + clientUsername + " has entered the chat!");
+                    addClientToChat();
+//                    this.constructedCorrectly = true;
+//                    clientHandlers.add(this);
+//                    System.out.println("user in database");
+//                    get15LatestMessages();
+//                    broadcastMessage("Server: " + clientUsername + " has entered the chat!");
                 } else {
-                    this.constructedCorrectly = false;
-                    bufferedWriter.write("Erreur dans la saisie du mot de passe");
-                    bufferedWriter.newLine();
-                    bufferedWriter.flush();
-                    System.out.println("wrong password");
-                    closeEverythingWithoutRemoving(socket, bufferedReader, bufferedWriter);
+                    handleWrongClientAuthentication();
+//                    this.constructedCorrectly = false;
+//                    bufferedWriter.write("Erreur dans la saisie du mot de passe");
+//                    bufferedWriter.newLine();
+//                    bufferedWriter.flush();
+//                    System.out.println("wrong password");
+//                    closeEverythingWithoutRemoving(socket, bufferedReader, bufferedWriter);
                 }
 //                JSONObject obj = new JSONObject();
 //                obj.put("Username", clientUsername);
@@ -389,11 +392,7 @@ public class Server {
             } catch (UserNotInDataBaseException e) {
                 System.out.println("Exception user not in data");
                 addUserToDB(clientUsername, clientPassword);
-                this.constructedCorrectly = true;
-                clientHandlers.add(this);
-                System.out.println("user in database");
-                get15LatestMessages();
-                broadcastMessage("Server: " + clientUsername + " has entered the chat!");
+                addClientToChat();
             } catch (UserIsAlreadyConnectedException e) {
                 this.constructedCorrectly = false;
                 System.out.println("User is already connected with this account");
@@ -417,6 +416,33 @@ public class Server {
 //                    ex.printStackTrace();
 //                }
 //            }
+        }
+
+        public void addClientToChat() {
+            this.constructedCorrectly = true;
+            clientHandlers.add(this);
+            System.out.println("user in database");
+            get15LatestMessages();
+            broadcastMessage("Serveur: " + clientUsername + " est rentre dans le chat!");
+        }
+
+        public void handleWrongClientAuthentication() {
+            try {
+                this.constructedCorrectly = false;
+                bufferedWriter.write("Erreur dans la saisie du mot de passe");
+                bufferedWriter.newLine();
+                bufferedWriter.flush();
+                System.out.println("wrong password");
+                closeEverythingWithoutRemoving(socket, bufferedReader, bufferedWriter);
+            } catch (IOException e) {
+                System.out.println("Could send message to client through socket");
+            }
+        }
+
+        public void initializeConnexionInfos() {
+            this.clientSocketAddress = (InetSocketAddress)socket.getRemoteSocketAddress();
+            this.clientIPAddress = clientSocketAddress.getAddress().getHostAddress();
+            this.clientPortNumber = clientSocketAddress.getPort();
         }
 
 //        public void sendToClientTheirPort(int portNumber) {

@@ -2,8 +2,6 @@ import CustomExceptions.InvalidPasswordException;
 
 import java.io.*;
 import java.net.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
@@ -12,8 +10,6 @@ public class Client implements Runnable
     private Socket socket;
     private static String serverAddress;
     private static Integer serverPort;
-//    private InetAddress clientIPAddress;
-    private String clientPort;
     private BufferedReader bufferedReader;
     private BufferedWriter bufferedWriter;
     private String username;
