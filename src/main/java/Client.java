@@ -67,7 +67,7 @@ public class Client implements Runnable
             serverAddress = scanner.nextLine();
             addressBytes = serverAddress.split("\\.", 0);
             if (!isValidIPAddress(addressBytes) || addressBytes.length != 4){
-                System.out.print("\nL'adresse entrée est invalide \n\n");
+                System.out.print("\nL'adresse entree est invalide \n\n");
             }
         }
     }
@@ -76,10 +76,10 @@ public class Client implements Runnable
         serverPort = 0;
         try {
             while(!isValidPortNumber(serverPort)) {
-                System.out.print("Entrez le port d'écoute du serveur: \n");
+                System.out.print("Entrez le port d'ecoute du serveur: \n");
                 serverPort = Integer.parseInt(scanner.nextLine());
                 if(!isValidPortNumber(serverPort)) {
-                    System.out.print("\nLe port doit être compris entre 5000 et 5050 \n\n");
+                    System.out.print("\nLe port doit etre compris entre 5000 et 5050 \n\n");
                 }
             }
         } catch (NumberFormatException e) {

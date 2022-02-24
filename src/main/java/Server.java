@@ -37,7 +37,7 @@ public class Server {
     public Server() {
         this.configureServerSocket();
         parser = new JSONParser();
-        usersDBFile = new File("usersDB.json");
+        usersDBFile = new File("usersDB.json" + serverAddress + Integer.toString(serverPort));
         messagesDBFile = new File("messagesDB.json");
         if (!usersDBFile.isFile()) {
             this.createUsersDB();
