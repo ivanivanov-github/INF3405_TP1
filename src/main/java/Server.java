@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.TimeUnit;
 
 import CustomExceptions.UserIsAlreadyConnectedException;
 import CustomExceptions.UserNotInDataBaseException;
@@ -132,6 +131,15 @@ public class Server {
     }
 
     public boolean verifyAuthentication(String username, String password) throws UserNotInDataBaseException, UserIsAlreadyConnectedException {
+        JSONObject objData;
+        try {
+            newReader = new FileReader(usersDBFile);
+            objData = (JSONObject) parser.parse(newReader);
+            users = (JSONArray) objData.get("Users");
+        } catch (java.io.IOException | org.json.simple.parser.ParseException e) {
+            System.out.println("Problem in reader the users from the data base during the authentication verification");
+            e.printStackTrace();
+        }
         Iterator<JSONObject> iterator = users.iterator();
         while (iterator.hasNext()) {
             JSONObject jsonUser = (JSONObject) iterator.next();
@@ -306,15 +314,9 @@ public class Server {
     }
 
     public static void serverInfosInputHandler() {
-        try {
-            Scanner scanner = new Scanner(System.in);
-            ipAddressInputHandler(scanner);
-            portInputHandler(scanner);
-            System.out.println("SVP veuillez attendre pendant qu'on essaie de vous connecter a un serveur avec les informations que vous avez rentre...");
-            TimeUnit.MILLISECONDS.sleep(300);
-        }  catch (InterruptedException e) {
-            System.out.println("Something went wrong");
-        }
+        Scanner scanner = new Scanner(System.in);
+        ipAddressInputHandler(scanner);
+        portInputHandler(scanner);
     }
 
     public static void main(String[] args) {
