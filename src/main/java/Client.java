@@ -183,7 +183,6 @@ public class Client implements Runnable
     public static void main(String[] args) throws IOException
     {
         serverInfosInputHandler();
-
         try {
             Socket socket = new Socket();
             SocketAddress socketAddress = new InetSocketAddress(serverAddress, serverPort);
@@ -194,7 +193,7 @@ public class Client implements Runnable
             Thread thread = new Thread(client);
             thread.start();
             client.sendMessage();
-        } catch (SocketTimeoutException e) {
+        } catch (IOException e) {
             System.out.println("\nAucun serveur n'ecoute sur l'adresse IP et port donnees \nVeuillez rentrer l'adresse IP et le port d'un serveur qui est en marche");
         }
     }

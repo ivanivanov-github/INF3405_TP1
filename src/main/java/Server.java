@@ -37,7 +37,7 @@ public class Server {
     public Server() {
         this.configureServerSocket();
         parser = new JSONParser();
-        usersDBFile = new File("usersDB.json" + serverAddress + Integer.toString(serverPort));
+        usersDBFile = new File("usersDB_" + serverAddress.replace(".", "_") + ".json");
         messagesDBFile = new File("messagesDB.json");
         if (!usersDBFile.isFile()) {
             this.createUsersDB();
@@ -58,12 +58,11 @@ public class Server {
                     thread.start();
                 }
             }
-            System.out.println("prob in startServer");
+            System.out.println("Problem in startServer");
         } catch (IOException e) {
-            System.out.println("prob in startServer");
-            e.printStackTrace();
+            System.out.println("Problem in startServer");
         } catch (java.nio.channels.IllegalBlockingModeException e) {
-            System.out.println("prob in startServer");
+            System.out.println("Problem in startServer");
         }
     }
 
@@ -92,7 +91,6 @@ public class Server {
             this.listener.bind(new InetSocketAddress(serverIP, serverPort));
         } catch (IOException e) {
             System.out.println("Couldn't configure the server socket");
-            e.printStackTrace();
         }
     }
 
@@ -286,7 +284,7 @@ public class Server {
             serverAddress = scanner.nextLine();
             addressBytes = serverAddress.split("\\.", 0);
             if (!isValidIPAddress(addressBytes) || addressBytes.length != 4){
-                System.out.print("\nL'adresse entrée est invalide \n\n");
+                System.out.print("\nL'adresse entree est invalide \n\n");
             }
         }
     }
@@ -295,10 +293,10 @@ public class Server {
         serverPort = 0;
         try {
             while(!isValidPortNumber(serverPort)) {
-                System.out.print("Entrez le port d'écoute du serveur: \n");
+                System.out.print("Entrez le port d'ecoute du serveur: \n");
                 serverPort = Integer.parseInt(scanner.nextLine());
                 if(!isValidPortNumber(serverPort)) {
-                    System.out.print("\nLe port doit être compris entre 5000 et 5050 \n\n");
+                    System.out.print("\nLe port doit etre compris entre 5000 et 5050 \n\n");
                 }
             }
         } catch (NumberFormatException e) {
@@ -322,10 +320,9 @@ public class Server {
     public static void main(String[] args) {
         serverInfosInputHandler();
         Server server = new Server();
-        System.out.format("The server is running on %s: %d%n", server.serverAddress, server.serverPort);
+        System.out.println("Server running...");
         server.shutDownHookDisconnectAllUsers(server);
         server.startServer();
-        System.out.println("Problem in startServer");
     }
 
     private class ClientHandler implements Runnable {
@@ -475,9 +472,9 @@ public class Server {
         public void broadcastMessage(String messageToSend) {
             for (ClientHandler clientHandler : clientHandlers) {
                 try {
-                        clientHandler.bufferedWriter.write(messageToSend);
-                        clientHandler.bufferedWriter.newLine();
-                        clientHandler.bufferedWriter.flush();
+                    clientHandler.bufferedWriter.write(messageToSend);
+                    clientHandler.bufferedWriter.newLine();
+                    clientHandler.bufferedWriter.flush();
                 } catch (IOException e) {
                     System.out.println("Client" + clientUsername + " had a prob with broadcasting his message");
                     closeEverything(socket, bufferedReader, bufferedWriter);
